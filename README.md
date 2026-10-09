@@ -1,6 +1,6 @@
 # mastergo-ui
 
-把 MasterGo 设计稿落到客户端界面的 Cursor 技能。按设计链接取数，或读当前选中图层，再映射到工程里已有的组件和资源，不另起一套视觉体系。
+把 MasterGo 设计稿落到客户端界面的通用 AI 技能，不限定 Cursor 或其他 AI 工具。按设计链接取数，或读当前选中图层，再映射到工程里已有的组件和资源，不另起一套视觉体系。
 
 ## 什么时候用
 
@@ -13,7 +13,7 @@
 | 手里有设计链接 | Magic MCP（`mastergo-magic-mcp`） | 用 `fileId` 和 `layer_id` 取 DSL |
 | 改当前画布，或读选中图层 | Vibe MCP（`mastergo-vibe`） | 依赖本机已打开的 MasterGo 客户端 |
 
-MCP 工具没连上时停住，按 [reference.md](reference.md) 检查连接。不要在没有设计数据的情况下编一版界面。
+优先复用当前 AI 会话中已连接的 MasterGo MCP，按实际暴露的能力和参数调用，不要求固定服务名或工具名前缀。缺少所需能力时，按 [reference.md](reference.md) 为当前 AI 工具接入对应服务。不要在没有设计数据的情况下编一版界面。
 
 ## 文件
 
@@ -28,18 +28,14 @@ MCP 工具没连上时停住，按 [reference.md](reference.md) 检查连接。�
 
 ## 使用前准备
 
-1. Node.js 18 及以上。
-2. 在 mastergo.com 的「个人设置 → 安全设置」生成令牌，写入 `~/.zshrc`：
+已有可用 MCP 时无需重复安装；只配置任务需要的服务。首次接入本地服务：
 
-   ```bash
-   export MG_MCP_TOKEN=...
-   ```
-
-   令牌只留在本机，不进仓库，也不写进 `mcp.json`。
+1. Node.js 18 及以上，当前 AI 工具或其 MCP 网关支持启动 stdio 服务。
+2. 使用 Magic 时，在 mastergo.com 的「个人设置 → 安全设置」生成令牌，通过当前系统的环境变量或客户端安全配置注入 `MG_MCP_TOKEN`。令牌不进仓库、不写进共享 MCP 配置；不要让 AI 读取或输出令牌值。
 3. 设计文件放在团队项目里，账号有团队版席位。Magic 按链接取数依赖这两项。
-4. 在 `~/.cursor/mcp.json` 配置两个服务。当前本机配置见 [reference.md](reference.md)。`mastergo-magic-mcp.sh` 启动时从登录 shell 读取 `MG_MCP_TOKEN`。从 Dock 打开的 Cursor 若读不到该变量，改用终端执行 `cursor` 再开。
-5. Vibe 需要 MasterGo 客户端已打开，且文件内 MCP 在线。端口以客户端为准（当前是 `127.0.0.1:30678`）。端口被占用后会更换，`mcp.json` 要跟着改。
-6. 在 Cursor 的 Settings → Tools & MCP 重载，直到两个服务都显示已连接。
+4. 按当前 AI 工具的配置格式接入 Magic 或 Vibe，示例见 [reference.md](reference.md)。MCP 服务相同，客户端的配置位置、格式和环境变量传递方式可以不同。
+5. Vibe 需要 MasterGo 客户端已打开，且文件内 MCP 在线。地址和端口以客户端显示为准；变更后同步更新 MCP 配置。
+6. 在当前 AI 工具中重载 MCP 或重新连接会话。确认所需工具已出现，并通过只读设计接口验证访问，不以进程启动成功代替授权验证。
 
 ## 出 UI
 
@@ -58,7 +54,7 @@ MCP 工具没连上时停住，按 [reference.md](reference.md) 检查连接。�
 
 ### 画布（Vibe）
 
-客户端开着，文件内 MCP 在线，端口与 `mcp.json` 一致。操作画布时不要换页。
+客户端开着，文件内 MCP 在线，地址和端口与当前 AI 工具的 MCP 配置一致。操作画布时不要换页。
 
 1. 先在客户端选中图层，再 `get_selection_code`。对照视觉用 `get_selection_image`。
 2. 改颜色、文案、尺寸用 `agent_update_node`。换图标或图片用 `agent_replace_node`。改父节点时保留全部子节点。
@@ -84,10 +80,10 @@ MCP 工具没连上时停住，按 [reference.md](reference.md) 检查连接。�
 
 | 现象 | 处理 |
 | --- | --- |
-| 工具列表里没有这两个服务 | 重载 MCP，确认 `mcp.json` 合法，Node.js ≥ 18 |
+| 所需 MCP 能力未出现 | 按当前 AI 工具检查配置、工具权限和连接状态；本地服务需 Node.js ≥ 18 |
 | Magic 权限不足 | 检查令牌、团队版席位，以及文件是否在团队项目 |
-| Magic 读不到令牌 | 确认 `~/.zshrc` 有 `MG_MCP_TOKEN`，并从终端启动 Cursor |
-| Vibe 未找到终结点 | 客户端打开，文件内 MCP 在线，端口与配置一致 |
+| Magic 读不到令牌 | 确认 MCP 子进程收到 `MG_MCP_TOKEN`，按当前客户端的方式传递环境变量，不输出令牌 |
+| Vibe 未找到终结点 | 客户端打开，文件内 MCP 在线，地址和端口与配置一致 |
 | 数据过大或 429 | 按区块拉取，降低请求频率 |
 
 更细的工具对照见 [reference.md](reference.md)。

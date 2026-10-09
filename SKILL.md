@@ -8,16 +8,18 @@ description: >-
 
 # MasterGo 出 UI
 
-先拿到设计数据，再按本仓库已有基类和 TobBaseResource 落代码。MCP 工具不在时停住，按 [reference.md](reference.md) 检查连接，不要编一版界面；不要用浏览器、移动设备截图或猜测数据替代 Magic MCP。
+先拿到设计数据，再按本仓库已有基类和 TobBaseResource 落代码。本技能不限定 AI 工具；优先复用当前会话中可用的 MasterGo MCP。缺少所需能力时按 [reference.md](reference.md) 为当前 AI 工具检查或接入，不要编一版界面；不要用浏览器、移动设备截图或猜测数据替代 Magic MCP。
 
-本机服务名：`mastergo-magic-mcp`（设计链接）、`mastergo-vibe`（当前选中图层）。令牌在 `~/.zshrc` 的 `MG_MCP_TOKEN`，不进仓库，也不写进 `mcp.json`。
+按任务选择能力：Magic 读取设计链接，Vibe 读取当前选中图层或操作画布。`mastergo-magic-mcp`、`mastergo-vibe` 只是示例服务名，不要求固定别名。本地启动 Magic 时通过进程环境注入 `MG_MCP_TOKEN`；令牌不进仓库、不写进共享 MCP 配置、不在对话中输出。
 
 ## MCP 访问预检
 
-1. 确认对应 MCP 服务已出现在当前会话，而不是只存在于本地配置；修改配置后需重启会话或重新连接。
-2. `MG_MCP_TOKEN` 存在不等于授权成功。Magic 必须实际调用 `getPageLayers` 或其他只读设计接口验证。
-3. `401`、错误码 `10002` 表示 token 无效/过期，或账号没有 MasterGo 团队版编辑席位/研发席位；先解决授权，不要继续读 DSL。
-4. MCP 进程能启动只代表协议服务可用，只有设计接口返回图层数据才算访问条件满足。
+1. 查看当前会话的 MCP 工具列表，按任务确认所需能力，而不是只检查配置文件或服务名。已连接且可读设计数据时直接复用，不要求用户重复安装或提供本机令牌。
+2. 读取实际工具名称、描述和参数 schema。下文的 `getPageLayers`、`getDsl` 等是能力名称参考；客户端命名空间、前缀、服务别名或版本不同，使用实际暴露的对应工具，不硬编码某个 AI 工具的调用格式。版本缺少所需能力时说明缺失，不虚构调用。
+3. 能力缺失时，识别当前 AI 客户端及其 MCP 接入方式，按 [reference.md](reference.md) 选择配置入口、格式和环境变量传递方式；客户端不明先询问。只配置任务需要的服务，不覆盖现有配置、不要求改用 Cursor。修改后重载或重新连接，确认工具在当前会话出现。
+4. `MG_MCP_TOKEN` 存在不等于授权成功。Magic 必须实际调用页面图层查询（如 `getPageLayers`）或其他只读设计接口验证。Vibe 也需用只读选中图层接口确认连接。
+5. `401`、错误码 `10002` 表示 token 无效/过期，或账号没有 MasterGo 团队版编辑席位/研发席位；先解决授权，不要继续读 DSL。
+6. MCP 进程能启动只代表协议服务可用，只有设计接口返回图层数据才算访问条件满足。所需能力仍不可用时停止设计实现并说明原因。
 
 ## 先判断任务类型
 
@@ -29,7 +31,7 @@ description: >-
 ```
 进度：
 - [ ] 有 mastergo 链接 → Magic；改当前画布或读选中图层 → Vibe
-- [ ] 对应 MCP 工具已出现
+- [ ] 当前 AI 会话已暴露所需 MCP 能力，实际工具名称和参数已确认
 - [ ] 知护办 Android 工程：读 [android-tob.md](android-tob.md)。其他工程读 design-system/mastergo.md（有才读）
 - [ ] 取到设计数据
 - [ ] 列出复用的组件 / 必须新建的组件
@@ -110,7 +112,7 @@ MasterGo token/十六进制或 dp/sp
 
 ## 画布（Vibe）
 
-客户端开着，文件内 MCP 在线，端口与 `mcp.json` 一致（当前是 `127.0.0.1:30678`）。操作画布时不要换页。
+客户端开着，文件内 MCP 在线，地址和端口与当前 AI 工具的 MCP 配置一致，以 MasterGo 客户端显示为准。操作画布时不要换页。
 
 1. 用户先选中图层，再 `get_selection_code`。
 2. 改样式用 `agent_update_node`，换图标或图片用 `agent_replace_node`。改父节点时保留全部子节点。
