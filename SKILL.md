@@ -40,6 +40,8 @@ description: >-
 - [ ] 每块区域先定：自己绘制、用图标，或自定义控件。自定义控件写下效果和传入的数据
 - [ ] 知护办：资源名带模块前缀，控件 ID 只带类型前缀，控件按 UniversalComponents → 已接入三方 → 原生选用
 - [ ] 知护办：图标先用 UniversalComponents，没有再从 MasterGo 取 webp，按 `{prefix}_ic_` 放进当前模块 `mipmap-xhdpi`
+- [ ] 颐挚：已检索 UniversalComponents 的组件、资源和调用示例，能复用时不得复制或重写
+- [ ] 颐挚：禁止硬编码颜色、尺寸和用户可见文案；页面基类、生命周期、ViewModel / UiState 职责符合项目规范
 ```
 
 ## 链接还原（Magic）
@@ -94,6 +96,30 @@ MasterGo 图片导出经验：当前 `mastergo-magic-mcp` 的 `extractSvg` 只�
 静态装饰用图标或裁图，不做成控件。没有数据、没有交互、只出现一次的结构留在页面里。
 
 处理时记下四件事：效果、现有控件为什么不够、控件负责画什么、外面传进什么数据。会再出现的抽成共享组件。只服务当前页、但效果属于上面几类的，仍然单独成控件，绘制不散在页面里。知护办的选用顺序和命名见 [android-tob.md](android-tob.md)。HTML 把这块抽成独立组件，页面只传数据。
+
+## 颐挚 UI 生成约束
+
+Obsidian 中的「颐挚项目技术规范（AI速查手册）」及其 UI、资源、基类子文档是颐挚 Android 的规范来源。按任务只读取需要的子文档，不凭经验补一套视觉或架构规则。
+
+### 组件优先级
+
+生成或还原 UI 前，先在当前工程和 `UniversalComponents` 中检索已有组件、基类、资源及调用示例，并记录复用项。选用顺序固定为：
+
+1. `UniversalComponents` 已有组件（按钮、输入、选择、弹层、空态、Tab、日历等）；
+2. 工程已接入的三方组件；
+3. Google / AndroidX 原生组件；
+4. 只有前三档无法表达设计效果时，才在业务模块新增控件。
+
+不要复制已有组件、另加依赖或新建第二套按钮、导航、列表单元。图标同样先找 `UniversalComponents`，没有再从 MasterGo 取 webp，按 `{prefix}_ic_` 放进当前模块 `mipmap-xhdpi`。
+
+### 页面与 UI 分层
+
+- Activity 不重写 `onCreate`；使用 `afterCreate(Bundle?)`，初始化顺序固定为 `initView()` → `initListener()` → `initData()`。
+- Fragment 默认使用 `BaseFragment` 的 `bindRootView()`、`initData()`；ViewBinding 在 `onDestroyView()` 置空。
+- ViewModel 只编排页面状态、请求和用户意图，不持有或直接操作 View、Binding、Context、Adapter、Dialog 或 PopupWindow；跳转、Toast 和弹窗由宿主执行。
+- `UiState` 只承载同一块 UI 的强关联展示结果；一次性事件、输入值和不同消费方的状态拆开传递。
+- UI 复杂度优先下沉到 ViewModel、Mapper、Policy、Controller 或具体 `ui/view`，不要泛化出 `Helper`、`CommonUtils`、`DataUtils`、`ViewUtils`。
+- Kotlin 属性 setter 只赋值；需要刷新 UI、校验或重新绑定时使用显式 `setXxx()` 方法。
 
 ## Android 资源核对（知护办）
 

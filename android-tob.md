@@ -6,13 +6,19 @@
 
 | 形态 | 基类 |
 | --- | --- |
-| 普通 Activity | `com.yishou.android.lib.base.arch.activity.BaseActivity` |
+| 普通 Activity | `com.yilife.android.arch.page.page.BaseActivity` |
 | 普通 Fragment | `com.yishou.android.lib.base.arch.fragment.BaseFragment`（实现 `bindRootView`、`initData`） |
 | 列表拼装页 | `com.yilife.android.arch.page.page.BaseWidgetFragment`（`initData`、`registerData2View`、`dv`、`addData`） |
 | 单条列表项 | `SingleItemWidget` / `ItemWidget` |
 | 底部弹层 | `CustomBottomPopupWindow` 或 `BottomSheetPopup`（`common/UniversalComponents`） |
 
 空态、错误态用 `BaseWidgetFragment` 的 `showEmptyView()` / `showErrorView()`。标题栏用已有 `TitleBar`。
+
+Activity 不重写 `onCreate`，使用 `afterCreate(Bundle?)`，初始化顺序固定为 `initView()` → `initListener()` → `initData()`。Fragment 默认实现 `bindRootView()`、`initData()`；ViewBinding 使用 `_binding` 可空模式，并在 `onDestroyView()` 置空。
+
+ViewModel 只负责页面状态编排、请求入口和用户意图处理，不直接持有或操作 View、Binding、Context、Adapter、Dialog、PopupWindow；跳转、Toast、弹窗和 View 绑定由 Activity / Fragment 宿主负责。`UiState` 只封装同一块 UI 的强关联展示结果，一次性事件、输入值和不同消费方状态独立传递。
+
+UI 复杂度按 ViewModel → Processor → Mapper → Policy → Resolver → `ui/controller` / `ui/view` 的职责顺序拆分，不为减少文件行数泛化 `Helper`、`CommonUtils`、`DataUtils` 或 `ViewUtils`。Kotlin 属性 setter 只做赋值，需要副作用时使用显式 `setXxx()` 方法。
 
 ## 颜色
 
@@ -34,7 +40,7 @@
 
 业务资源以该模块 `resourcePrefix` 的 `{prefix}_` 开头。落新文件前先看该模块 `build.gradle` 的 `resourcePrefix` 和已有 layout 文件名，按已有前缀写，不要另起一套。
 
-能引用 `TobBaseResource` 的颜色、字号、间距、圆角时直接引用，不要在业务模块再声明一份同值资源。
+能引用 `TobBaseResource` 的颜色、字号、间距、圆角时直接引用，不要在业务模块再声明一份同值资源。禁止在 XML / Kotlin 中硬编码颜色、尺寸和用户可见文案；文案放入 `strings.xml`，颜色和尺寸先查语义 token，确无对应项才新增模块资源。
 
 | 类型 | 格式 | 示例 |
 | --- | --- | --- |
@@ -103,12 +109,12 @@ ViewBinding ID 与资源文件前缀是两套规则。ID 格式 `{typePrefix}{se
 
 ## 控件选用
 
-按这个顺序，前一档能满足就不要往下走：
+生成或还原 UI 前，必须先在当前工程和 `UniversalComponents` 中检索组件定义、公共 API、资源和调用示例，并记录复用项。按这个顺序，前一档能满足就不要往下走：
 
 1. `UniversalComponents` 里已有的 `*Components`（按钮、输入、选择、弹层、空布局、Tab、日历等）。
 2. 工程里已经接入的三方控件。常见的有 DialogX、BasePopup、BRVAH、Lottie、SmartRefresh、Banner、DslTabLayout。以当前模块 `build.gradle` 和 `Dept.kt` 里实际依赖为准。
 3. Google / AndroidX 原生控件。
 
-两档都对不上时：结构简单的控件在模块内实现；结构复杂的先找有没有合适的三方库，把库名和用途交给宿主决定，不要自行加入依赖。
+两档都对不上时：结构简单的控件在模块内实现；结构复杂的先找有没有合适的三方库，把库名和用途交给宿主决定，不要自行加入依赖。不得复制 UniversalComponents 组件或新建第二套按钮、导航、列表单元。
 
 新建自定义 View 只在这三档实现不了设计效果时发生。环形或多段进度、波形和趋势、按设计稿定制的轨道滑块、必须响应点击的蒙版热区、随业务状态整块重画的图形，才新建。静态装饰用图标，不新建 View。布局文件 `{prefix}_view_`，ID 用 `view_`。
