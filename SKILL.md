@@ -40,7 +40,7 @@ description: >-
 - [ ] 每块区域先定：自己绘制、用图标，或自定义控件。自定义控件写下效果和传入的数据
 - [ ] 知护办：资源名带模块前缀，控件 ID 只带类型前缀，控件按 UniversalComponents → 已接入三方 → 原生选用
 - [ ] 知护办：图标先用 UniversalComponents，没有再从 MasterGo 取 webp，按 `{prefix}_ic_` 放进当前模块 `mipmap-xhdpi`
-- [ ] 颐挚：已检索 UniversalComponents 的组件、资源和调用示例，能复用时不得复制或重写
+- [ ] 颐挚：已检索 UniversalComponents，且当前模块 `build.gradle` 已有 `implementation Module.universalComponents`，能复用时不得复制或重写
 - [ ] 颐挚：禁止硬编码颜色、尺寸和用户可见文案；页面基类、生命周期、ViewModel / UiState 职责符合项目规范
 ```
 
@@ -110,7 +110,7 @@ Obsidian 中的「颐挚项目技术规范（AI速查手册）」及其 UI、资
 3. Google / AndroidX 原生组件；
 4. 只有前三档无法表达设计效果时，才在业务模块新增控件。
 
-不要复制已有组件、另加依赖或新建第二套按钮、导航、列表单元。图标同样先找 `UniversalComponents`，没有再从 MasterGo 取 webp，按 `{prefix}_ic_` 放进当前模块 `mipmap-xhdpi`。
+不要复制已有组件、另加依赖或新建第二套按钮、导航、列表单元。UniversalComponents 走远端 maven：常量是 AppShell `Dept.kt` 的 `Module.universalComponents`，模块 `build.gradle` 用 `implementation Module.universalComponents`；缺依赖时只补这一行，不写死版本、不新增其他依赖。图标同样先找 `UniversalComponents`，没有再从 MasterGo 取 webp，按 `{prefix}_ic_` 放进当前模块 `mipmap-xhdpi`。
 
 ### 页面与 UI 分层
 

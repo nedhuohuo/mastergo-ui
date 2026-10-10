@@ -117,4 +117,18 @@ ViewBinding ID 与资源文件前缀是两套规则。ID 格式 `{typePrefix}{se
 
 两档都对不上时：结构简单的控件在模块内实现；结构复杂的先找有没有合适的三方库，把库名和用途交给宿主决定，不要自行加入依赖。不得复制 UniversalComponents 组件或新建第二套按钮、导航、列表单元。
 
+### UniversalComponents 依赖接入
+
+`UniversalComponents` 不做本地工程依赖，走远端 maven。常量定义在当前 AppShell 的 buildSrc（`com/yishou/android/arch/version/plugin/Dept.kt`，`object Module`）：
+
+```kotlin
+const val universalComponents = "com.yilife.android.bu.module:UniversalComponents:<version>"
+```
+
+业务模块引用方式：`build.gradle` 顶部 `import com.yishou.android.arch.version.plugin.*`，`dependencies` 里写 `implementation Module.universalComponents`。
+
+- 用组件前先看当前模块 `build.gradle` 是否已有这一行；没有就只补这一行，不写死 groupId / artifactId / version，不新增其他依赖。
+- 看到 `// implementation project(":UniversalComponents")` 是迁移前的本地依赖，保持注释，改用 `Module.universalComponents`。
+- 版本由 AppShell 的 `Dept.kt` 统一维护；需要升版时说明原因交宿主决定，不擅自改 SNAPSHOT 版本。
+
 新建自定义 View 只在这三档实现不了设计效果时发生。环形或多段进度、波形和趋势、按设计稿定制的轨道滑块、必须响应点击的蒙版热区、随业务状态整块重画的图形，才新建。静态装饰用图标，不新建 View。布局文件 `{prefix}_view_`，ID 用 `view_`。
