@@ -22,12 +22,21 @@
 | [SKILL.md](SKILL.md) | Agent | 开工检查、页面分析与组件判定、两条出 UI 路径、完成标准 |
 | [reference.md](reference.md) | Agent | MCP 配置、工具对照、排障 |
 | [android-tob.md](android-tob.md) | Agent | 知护办 Android：基类、TobBaseResource、命名、控件选用 |
-| [android-pitfalls.md](android-pitfalls.md) | Agent | Android 落地陷阱：尺寸塌陷、代码拼静态布局、写死尺寸、indicator 丢失 |
+| [android-pitfalls.md](android-pitfalls.md) | Agent | Android 落地陷阱：尺寸塌陷、代码拼静态布局、圆角裁切、ROM 忽略行高、模块不新建 dp / 颜色、tools 预览属性 |
 | [project-contract.md](project-contract.md) | Agent | 非 Android 工程如何找设计约定 |
 | [templates/android-ui-analysis.md](templates/android-ui-analysis.md) | Agent | 实现前填写的五项分析：页面结构、组件、资源、布局、状态 |
 | [scripts/check-ui-analysis.sh](scripts/check-ui-analysis.sh) | Agent | 门禁检查：五项分析未填完或含待定项时拒绝开工 |
+| [tools/](tools/) | 人 | 取数小工具：MCP 只读调用器（`mcp-call.mjs`）、连通与授权探针、DSL 转结构、SVG 转 Vector、[投喂单模板](tools/design-intake.md) |
+| [docs/mastergo-mcp-setup.md](docs/mastergo-mcp-setup.md) | 人 | MCP 接入步骤（环境变量注入、客户端差异、排障） |
+| [output/analysis/](output/analysis/) | 人 | **落地案例**：每个页面的五项分析 + 交付说明（含真机实测值与偏差） |
+| [output/ab/](output/ab/) | 人 | 新旧规范 A/B 对照：为什么要加五项分析门禁 |
+| [LICENSE](LICENSE) | — | MIT |
 
-`.mastergo/` 是画布缓存，不是业务源码。
+`.mastergo/` 是画布缓存，不是业务源码。仓库里只保留技能本身、工具和案例结论：
+
+- `output/design/`（设计稿原始落盘，可由 MCP 按 `fileId` + `layer_id` 重新拉取）、`output/asset/`、`stage/`、`.mcp-bundles/`、`.workbuddy/` 都在 `.gitignore` 里，属于本地工作区，不进仓库。
+
+案例怎么用：写新页面之前先翻 `output/analysis/` 里同形态页面（列表卡、弹层、标题栏 + 页签）的分析与交付说明——里面记着设计稿的判定（伪影、颜色三元冲突、占位文本）和真机对账遇到的坑；`android-pitfalls.md` 的每条规则都出自这些案例。
 
 ## 使用前准备
 
