@@ -2,7 +2,7 @@
 # 校验一份填写好的 UI 分析（templates/android-ui-analysis.md 的实例）是否可用于开工。
 # 用法: check-ui-analysis.sh <分析文档>
 # 退出码: 0 完整可用 / 1 有缺口 / 2 用法错误
-# 判定: 五个分析小节都至少有 1 行填了内容，且全文没有待定标记。
+# 判定: 五个分析小节都至少有 1 行填了内容；LayoutSpec 含「行内对齐」「圆角实现机制」两行且非空；全文没有待定标记。
 set -uo pipefail
 
 file=${1:-}
@@ -55,6 +55,15 @@ END {
   if (bad) { print "结论: 分析未完成，不要开始写布局或代码"; exit 1 }
   print "结论: 五个小节均有内容，可以开工"
 }' "$file" || exit 1
+
+# LayoutSpec 的粒度门禁：行内对齐和圆角实现机制必须写（真的没有这类结构就写「无」）。
+# 只校验区块高/行距时，卡内文字位置和图片位圆角能整片错过去（实例见 SKILL.md 完成标准）。
+for label in 行内对齐 圆角实现机制; do
+  if ! grep -qE "^\|[[:space:]]*${label}[^|]*\|[[:space:]]*[^|[:space:]]" "$file"; then
+    echo "LayoutSpec 缺行或空值: ${label}（卡内每行的行内对齐、每个圆角子元素的裁切机制必须写，没有就写「无」）"
+    exit 1
+  fi
+done
 
 if grep -nE '^\|.*(待定|TBD|TODO|\?\?\?|xxx)' "$file" >/dev/null; then
   echo "待定标记出现在表格里:"

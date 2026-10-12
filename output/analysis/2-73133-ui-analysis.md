@@ -81,6 +81,19 @@
 - 套餐内块：`12 + 22(套餐行) + 16 + 36(开始时间) + 16 + 36(结束时间) + 16 + 36(服务天数) = 190`（行距 16，最后一行无分割线）
 - 底部条：`62(内容) + 34(安全区) = 96`；`4 + 46(下一步) + 12 = 62`
 
+**套餐内块的行内对齐（`section-9.txt` 逐节点读，补于 2026-10-12）**
+
+容器 `2:73278` 自己的 `flexContainerInfo` 是 `padding: 12px 8px 0`、`gap: 16px`，但三个表单行**各自还带一层行内 padding**，行内对齐由它决定，不能只取容器 padding：
+
+| 行 | 节点 | 行框 y（块内） | 高 | 行内 padding | 内容对齐 | 文字相对 y |
+| --- | --- | --- | --- | --- | --- | --- |
+| 普通护理套餐 | `2:73279` | 12 | 22 | 无 | center | 12（文字 22 填满行） |
+| 开始时间 | `2:73291` | 50 | 36 | `0px 0px 12px` | center | 51（内容区 24，贴行顶 +1） |
+| 结束时间 | `2:73311` | 102 | 36 | `0px 0px 12px` | center | 103 |
+| 服务天数 | `2:73331` | 154 | 36 | `0px 0px 12px` | center | 155 |
+
+→ 三段文字节距 = **39 / 52 / 52dp**。**行内不许用「在 36 里居中」表达**：那样文字比设计低 5.75dp，节距变 44.75 / 52 / 46.25（本次真机截图逐像素实测 44.9 / 52.6 / 46.7，而区块高 190、行距 16、两条分割线 y 全部正确）。分割线是行自己的 `strokeWidth: 0px 0px 0.5px`（画在行底边），所以**分割线位置对不能证明文字位置对**。
+
 ## 2. ComponentMap
 
 | 区块 | 形态 | 组件 | 行为 | 复用来源 | 需要核对的默认值 | 新建理由 |
@@ -94,7 +107,7 @@
 | 与被照护关系 | 6 个同形 chip 换行 | `FlexboxLayout` + `nursing_item_order_hospital_relation.xml` | 设计稿 6 项均为默认态、无选中态 → 不接交互 | `ThirdDependence.Flexbox.flexbox`（模块已加） | chip 固定 72×26（设计值，不是按文本撑开） | 新建 1 个 item 布局：同形重复单元，避免把 6 份静态块抄进页面 |
 | 模式切换（全部 / 多对多） | 两段：实心块 / 白底描边块 | `TextView` + drawable | 互斥切换，选中回填 | AndroidX 原生 + 模块已有 `nursing_bg_order_tab_selected` | 未选中态是**白底 + 1px 主色描边**（2:77272 的时段页签没有描边），需新增 1 个 drawable | 只新增 drawable，不新建控件 |
 | 套餐勾选 | 圆形勾选块 | `ImageView` + 模块 `nursing_bg_order_checkbox_selected` / `nursing_ic_order_checkbox_check` | 设计稿只给选中态 | 模块已有 | — | 不新建 |
-| 阿姨头像 / 勋章 | 图片位 + 金渐变胶囊 | `FrameLayout` + `ImageView` + `TextView` | 无 | 模块已有 `nursing_bg_order_avatar` / `nursing_bg_order_medal` | 本页头像 72×87（2:77272 是 72×84），勋章在头像**下方独立一行**（2:77272 是压在头像左下角） | 不新建控件，尺寸按本页另立 dimen |
+| 阿姨头像 / 勋章 | 图片位 + 金渐变胶囊 | `FrameLayout` + `ImageView` + `TextView` | 无 | 模块已有 `nursing_bg_order_avatar` / `nursing_bg_order_medal` | 本页头像 72×87（2:77272 是 72×84）→ 尺寸另立 dimen；**设计 `2:73387` 圆角 8（四角）**，模块 drawable 的圆角值要回查（值复用不是名字复用）；图片铺满容器，容器必须真裁切（`clipToOutline`），否则圆角被图片盖掉 | 不新建控件 |
 | 按钮（新增联系人 / 从手机通讯录添加 / 发送简历 / 查看简历 / 下一步） | 圆角块 + 文字 | `com.yilife.android.widget.component.shapetextview.ShapeTextView` | 点击留空（设计稿未给目标） | `Module.shapeTextview`（模块已有） | `radius` / `solidColor` / `strokeColor` 都按设计值给，不写 `bg_` drawable | 不新建 |
 | 阿姨标签 chip / 展开按钮 | 间距一致、结构相同的重复项 | `FlexboxLayout` + 模块已有的 `nursing_item_order_staff_tag(.more)` | 无交互（展示） | 模块已有 | 横向 8 / 纵向 6 | 不新建 |
 | 底部固定条 | 底部固定：汇总 + 主按钮 | `LinearLayout` + `TextView` + `ShapeTextView` | 「下一步」点击留空 | 模块已有 `nursing_bg_order_bottom` | 上方向阴影不能用 `elevation`（`android-pitfalls.md`），沿用模块 drawable | 不新建 |
@@ -181,13 +194,15 @@
 | 模式切换 | 2 块各 157.5×36、间距 12 | `LinearLayout`（weight 1）+ 第二块 `layout_marginStart` | 327 − 12 = 315，两块各 157.5 |
 | 标签流 | 横向 8 / 纵向 6 | `FlexboxLayout` 子项 margin | 沿用模块 `nursing_item_order_staff_tag` |
 | 阿姨卡横排 | 左 72、右 243（gap 12） | 内层横排容器 | 左固定 72dp、右 `layout_weight=1` |
-| 头像 | 72 × 87（圆角 8） | `FrameLayout` + `ImageView` | 位图 72×96 超出容器，用 `centerCrop` 裁切 |
+| 头像 | 72 × 87（圆角 8，`2:73387` 四角） | `fl_order_hospital_staff_avatar` | 位图 72×96 超出容器 → `centerCrop`；容器 `clipToOutline="true"` 才真把圆角裁出来 |
 | 勋章 | 49 × 15、圆角 10、文字 8sp | 头像下方独立一行，`marginTop` 6 | 设计里是列方向第二项（不是压在头像上） |
 | 按钮行 | 2 个各 159.5×28、间距 8、圆角 6 | `ShapeTextView`（weight 1） | 发送简历实心主色 / 查看简历 `#DDDFFF` 底 + 1px 主色描边 |
 | 底部固定条 | 375 × 62 + 34 安全区 | `ll_order_hospital_bottom` | `wrap_content` + 代码里加导航栏 `paddingBottom` |
 | 下一步按钮 | 116 × 46、圆角 23 | `ShapeTextView` | 固定宽高，`layout_gravity=end` |
 | 字号 / 行高 | 18/22、16/22、14/22、12、20/23、8 | 各 `TextView` | 字号走语义档；行高用固定块高兜底（华为 ROM 忽略 `android:lineHeight`，见 `android-pitfalls.md`） |
 | 圆角 | 卡片 12、chip 6、模式切换 4、头像 8、勋章 10、按钮 12/23/6 | drawable / `ShapeTextView` | 见 ResourceMap |
+| 圆角实现机制 | 头像 8（四角） | `fl_order_hospital_staff_avatar` 的背景 `nursing_bg_order_avatar` + `android:clipToOutline="true"` | 轮廓由背景 drawable 提供，子 `ImageView` 铺满时必须裁切，否则圆角被盖掉（[android-pitfalls.md](../../android-pitfalls.md)）；该 drawable 若不是圆角 shape，按本页设计值另立 |
+| 行内对齐（卡内每一行） | 套餐内块三行 `0 0 12px` + center → 文字贴行顶；行框 12 / 50 / 102 / 154 | 每个表单行自己 `paddingBottom=12dp` + `gravity=center_vertical` | 三行同一写法（含无分割线的服务天数行）；不用「weight 子容器在 36 里居中」（低 5.75dp） |
 | 对齐关系 | 卡片内标题左对齐；表单 label 左、值右；关系 chip 居中；金额右对齐 | 各行容器 | 行容器 `gravity=center_vertical`，值容器 `layout_weight=1` + 右对齐 |
 
 ## 5. StateSpec
@@ -243,13 +258,15 @@
 - [x] 安装的是本次构建的包（`adb install` 输出 `Success`）
 - [x] `adb shell uiautomator dump` 能找到设计稿的每段文案（含「医院陪护」「全部」「多对多」三个非占位闭集文案）
 - [x] 截图逐块比对：标题栏 88、客户信息 100、服务地点 134、被照护人 230、服务套餐 494、联系人 900、阿姨 1080、底部条 1275.57（±2dp）
+- [x] 卡内逐行取 y 与设计相对 y 对过（真机 2026-10-12）：改前节距 **44.6 / 51.9 / 46.0dp**，修后 **38.7 / 51.9 / 51.9dp**（设计 39 / 52 / 52）；盒顶→首行 12.5dp、末行→盒底 13.5dp（设计 12 / 14）
+- [x] 圆角子元素的角点像素（真机 2026-10-12）：头像四角内缩改前恒为 0，修后 **17→12→9→6→5→3→2→1→0px**（四角对称），符合 r=8dp=23.1px 的圆弧；容器 72.0×86.8dp
 - [x] 未验证的交互和无法完全还原的偏差写进交付说明
 
 ## 8. 实现后结论（本次接手补完）
 
 - 交付说明：[2-73133-交付说明.md](2-73133-交付说明.md)（真机截图命令 + 绝对 y 对账表 + 偏差 + 待导出图标）
 - 真机对账：客户信息行 98.3 / 服务地点卡 132.5 / 被照护人卡 228.7 / 服务套餐卡 493.4 / 联系人卡 899.7 / 阿姨卡 1080.0 / 内容底 1252.3（整体比设计低 1.5dp，来自导航栏实测 86.2）；卡片高度 84.1 / 252.6 / 394 / 168.2 / 172.3 全部吻合。
-- 接手后修掉 3 处（**都是真机对账才暴露，文案清单全通过**）：
+- 接手后修掉 6 处（**都是真机对账/逐像素复量才暴露，文案清单全通过**）：
 
 | 问题 | 现象 | 根因 |
 | --- | --- | --- |
@@ -257,5 +274,7 @@
 | 阿姨标签被压成单字 | 7 个 chip 挤一行、每项只剩一个字 | 同上 |
 | 标签流第二行被裁 6dp | 容器 47.4 高（设计 54）、第二行 18 高（设计 24） | 容器定高 54，子项还各带 6dp `bottomMargin` → 内容 60 溢出 |
 | 资料行撑高右侧列 6dp | 标签流顶 +72.7（设计 +66） | 「34岁…」行误用 `nursing_line_height_16`（该档是 22dp），设计是 16 |
+| 套餐内块行内对齐错 | 三段节距实测 44.6 / 51.9 / 46.0dp（设计 39 / 52 / 52）：首段偏大、末段偏小、底部留白偏大 | 设计的三个表单行各自带行内 `padding: 0 0 12px`（文字贴行顶），实现把开始/结束行写成「weight 子容器在 36 里居中」→ 文字低 5.75dp；区块高 190、行距 16、两条分割线 y 全对，把它们盖住了 |
+| 头像圆角丢失 | 四角内缩实测恒为 0（设计 `2:73387` 圆角 8，2x 屏应起约 23px） | 圆角只画在容器背景 drawable 上，铺满的 `ImageView`（`centerCrop`）把四个角盖住，没加裁切 |
 
-- 沉淀：`android-pitfalls.md` 新增「FlexboxLayout 默认 nowrap」一节（含判据与三种修法）。
+- 沉淀：`android-pitfalls.md` 新增「FlexboxLayout 默认 nowrap」「容器背景的圆角不会裁掉子 View」两节；`SKILL.md` 完成标准把断言粒度下沉到「行」和「子元素」，并新增「卡内每一行都要写清行内对齐」；模板 LayoutSpec 新增「行内对齐」「圆角实现机制」两行，门禁脚本校验它们非空（见提交 `docs: 沉淀行内对齐与圆角裁切两条机制级规则`）。

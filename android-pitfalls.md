@@ -10,6 +10,15 @@
 - 模糊用三档渐变近似（如 `#3D000000` → `#14000000` → 透明），两档线性渐变看着偏硬
 - `elevation` 只用于「悬浮卡片」这种四周都要投影的效果
 
+## 容器背景的圆角不会裁掉子 View
+
+`FrameLayout` / `LinearLayout` 的背景 drawable 画了圆角、里面再放一个铺满的 `ImageView` 时，**背景圆角不裁子 View**：图片（`match_parent` + `centerCrop`）画在背景之上，把四个角完整盖住，渲染出来是直角。实测：设计稿「容器 8」72×87 `borderRadius: 8px`，实现是「背景带圆角的 `FrameLayout` + 铺满的 `ImageView`」，截图放大 4 倍看四角，首行像素内缩恒为 0（应约 13px）。
+
+- 设计稿把圆角写在容器节点上，位图节点通常没有 `borderRadius`；实现把圆角画在背景 drawable 上——两边单看都说得通，所以只看 DSL 或只看 drawable 都发现不了，只有角点像素能。
+- 修法：容器加 `android:clipToOutline="true"`（拿背景 drawable 的圆角轮廓去裁子 View），或换工程里能裁圆的图片控件（`ShapeableImageView` 这类）。只给背景 drawable 圆角、不加裁切，等于没做。
+- 复用模块的 `bg_` drawable 当轮廓时先确认它是圆角 shape：直角 drawable 的 outline 就是矩形，`clipToOutline` 不起作用，这时按本页设计值另立 drawable。
+- 确诊方式：`uiautomator dump` 里没有圆角这个属性，缩略图也看不出来（8dp 圆角在 2x 屏只有约 13px 的弧）。取角点像素的判据同 [SKILL.md](SKILL.md) 完成标准：首行内缩 ≈ 半径，`dy` 行内缩 `r − √(r²−(r−dy)²)`；四个角都要看。
+
 ## 容器尺寸被写成 0 → 整块空白
 
 `LinearLayout.LayoutParams(0, 0, weight)` 放在**垂直**容器里时，`layout_width` 也按 0 测量，卡片整棵子树宽度为 0，界面上就是一片空白。
@@ -123,11 +132,14 @@ ffmpeg -v error -i shot.png -f rawvideo -pix_fmt rgb24 - > full.raw   # 全屏 R
 | --- | --- | --- |
 | 「判据文案消失 = 切页成功」 | 是崩溃后回到了桌面 | 每一步先断言前台是本页面，并看 `adb logcat -b crash`（本机型 `logcat -c` 不可用，可用 `-b crash` 条数增量） |
 | 「设了参数但没生效」 | 装的是旧包，或 `adb install` 没真正完成 | 确认安装输出 `Success`、`lastUpdateTime` 已变，再量数据 |
+| 「装完就生效了」 | 安装被中断/回滚，设备上的 `base.apk` 还是旧包——**`lastUpdateTime` 变了、进程也是新的，只有包内容没变**（实测：时间戳 17:23→17:28、进程 ETIME 01:14，但设备上的 `base.apk` 与本地新包 md5 不同、新属性零命中） | 装完**回读设备上的包**校验内容，不看时间戳：`P=$(adb shell pm path <包名>\|sed 's/package://')` → `adb pull $P` → 本地 `md5 -q` 与构建产物比；或直接 `aapt2 dump xmltree --file res/layout/xxx.xml <拉下来的包> \| grep 新属性` |
+| 「量出来的数字全是旧的」 | dump 与截图不是同一帧：滑动后的动画没停就先后取了两份数据，按 dump 的坐标去截图里量，块位置差十几 px（实测照片少了 19px，看着像图片没铺满） | 滑动后先等动画停（≥5s）、dump 与截图紧邻取；量之前先用一个已知 ID 的节点 bounds 交叉校验截图，对不上就重取 |
 | 「断言 `clickable` 失败」 | 可点区在文字外面的容器上，不在文字节点 | 取包含文字中心的最小可点节点 |
 | 「同一文案判定错行」 | 同一段文案在多排结构里重复（如「全部」同时在两排），按文案取到第一个 | 先按行容器定位，再在容器范围内找项 |
 | 「切页没生效」 | 点击时页签行还在滚动，或翻页动画未结束 | 点击前等锚点位置稳定，断言用轮询等状态而不是单次 dump |
 | 「块内尺寸全对、卡片位置也对」 | 只量了块内尺寸和块间间距，没量绝对 y；间距被两层各吃一次时这几项都是正常的 | 逐块对设计稿的绝对 y（见下节） |
 | 「用的是这次实测的数字」 | 数字来自改动那一版之前（重构、加一层 padding、换容器后链条已变） | 结构一改就整表重跑，交付说明标注测量版本 |
+| 「uiautomator 报的 bounds 就是绘制范围」 | 它被系统栏裁过（本机所有节点底边都停在 2302，屏幕高 2412） | 判「压扁 / 裁切 / 被系统栏盖住」一律用截图扫像素；uiautomator 只用来确认节点在不在树里、文案和点击目标对不对 |
 
 ## 绝对坐标对账
 
@@ -155,6 +167,25 @@ def last(color, y0, y1, tol=2, x=200):      # 块底
 
 断言表按「设计稿 y → 实测 y」逐行写进交付说明，超 2dp 就回头查链条：从前一个块的底 + 设计稿间距 推算当前块的顶，看差在哪个容器的 padding / margin 上。实例：`.png → .raw` 用 `ffmpeg -v error -i shot.png -f rawvideo -pix_fmt rgb24 - > shot.raw`。
 
+大包（200MB+）装机走 `adb push` 到 `/data/local/tmp` 再 `pm install`：`adb install` 是流式安装，中途断掉容易留下「时间戳变了、内容没变」的假象，而 push + `pm install` 每步都有可校验的结果（设备侧文件大小/md5）。
+
 ## 选中态 / indicator 只声明在其中一个容器里
 
 页签的 indicator 如果只手写在某一个页签容器内，切到别的页签时 `findViewById` 在其它容器返回 null，原容器又被设成 GONE，指示条会永久消失。选中态和 indicator 交给组件托管（本项目用 `UniversalTabLayout`），业务布局里不放 indicator View。
+
+## uiautomator 的 bounds 不是真实绘制范围
+
+验收「控件有没有被压扁 / 被裁掉」时，`uiautomator dump` 里节点的 `bounds` 会被**系统栏裁掉**。实测（手势导航，屏高 2412）：所有节点的底边都被截到 2302——底部弹层面板报 `[0,1881][1084,2302]`（421px）、里面的保存条报 46px，看着像被挤扁；同一时刻截图逐行扫像素，那颗保存按钮是 `2268..2399` 的完整 132px（46dp），面板白底一直铺到 2411。差掉的 110px 只存在于 uiautomator 的裁剪里，不在绘制里。
+
+- uiautomator 只能用来确认「节点在不在树里、文案对不对、点击目标对不对」；**不能**用来判断尺寸有没有被裁。
+- 判「压扁 / 截断 / 被系统栏盖住」一律用截图：按行扫一列像素、按颜色分类连续段，看每段的起止 y。采样列要避开文字（文字会把色段切碎），本页用面板左白边（x=20）和卡片中线（x=542）两列交叉验证。
+- 这个坑会让结论完全反掉：本次先得出「保存条被压扁成 46px，去改布局」，而布局本来是对的。
+
+## 贴底页面 / 底部弹层的底部留白：系统 inset 可能就是 0
+
+设计稿底部那条 34（iOS 的 home indicator 条）在 Android 上没有等价的固定值。实测华为手势导航（`navigation_mode=100`）：`WindowInsetsCompat.Type.navigationBars()` 与 `Type.systemGestures()` 返回的 bottom **都是 0**（窗口本来就铺满整屏，系统不占位），只按 inset 补底边等于没补——整条保存按钮压在 `2292..2412` 的手势条上；三键导航（不透明导航栏）的设备上，按钮最下面 38dp 会被系统栏直接盖住，用户会说「这个按钮我看不见」。
+
+- 底部留白取 `max(系统导航栏 / 手势 inset, 设计稿的手势条高度)`。本项目模块已有档位 `nursing_bottom_inset`（34dp，2:7562 也在用），直接引用，不要另立同值 dimen。
+- 用工程基类 `BaseDialogFragment` 时窗口是浮动窗口、位置本身已避开系统栏，这时再按 inset 补一次会补重：这种情况直接用设计稿那 34dp（写进布局的 `paddingBottom`，不用运行时算）。
+- 反例（本次）：`windowIsFloating=false` + `setDecorFitsSystemWindows(false)` 的全屏窗口，系统 inset 为 0，按 inset 补 0 → 面板顶比设计低 98px，保存条整条压在系统手势条里。
+- 验证方式：截图量保存条下沿到屏幕底边的距离（本机 110px = 34dp 留白 + 保存条自身 4dp 内边距 + 取整），并确认按钮下沿落在系统栏之外。
