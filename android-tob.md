@@ -60,7 +60,7 @@ UI 复杂度按 ViewModel → Processor → Mapper → Policy → Resolver → `
 
 文字 `text_gy1` `#333333` 到 `text_gy6`，白字 `text_white`。边框 `border_*`，填充 `fill_*`，页面底 `bg_page`，卡片底 `bg_base`。
 
-设计稿色系一律落到本节的 `TobBaseResource` 语义色，不在业务模块新增同义色：蓝用 `color_primary` 及 `_v1`–`_v7`，红用 `color_error` 及 `_v1`–`_v7`，灰阶用 `text_gy*` / `fill_*` / `bg_page`。设计稿用的是旧色值时以 `TobBaseResource` 为准，实测色差（例如设计稿 `#3A74FC` 对 `color_primary` `#5460FE`）写进交付说明，不新增模块色去凑旧值。
+**设计稿色系以 `TobBaseResource` 为准。** 蓝用 `color_primary` 及 `_v1`–`_v7`，红用 `color_error` 及 `_v1`–`_v7`，灰阶用 `text_gy*` / `fill_*` / `bg_page`；设计稿里的旧色值按这个映射落地，不在业务模块新增同义色去凑旧值，也不因色差退回设计侧。实测色差（例如设计稿 `#3A74FC` → `color_primary` `#5460FE`）只看是不是设计侧该同步修正的问题，记录进交付说明即可，实现不改。
 
 ## 尺寸
 
