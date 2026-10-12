@@ -1,0 +1,159 @@
+[
+  {
+    "name": "version_0_2_9",
+    "description": "the current version is 0.2.9",
+    "required": [],
+    "properties": []
+  },
+  {
+    "name": "mcp__getDesignSections",
+    "description": "",
+    "required": [],
+    "properties": [
+      "fileId",
+      "layerId",
+      "shortLink",
+      "sourceLayerId",
+      "sectionIndex",
+      "format"
+    ]
+  },
+  {
+    "name": "mcp__getPageLayers",
+    "description": "",
+    "required": [],
+    "properties": [
+      "fileId",
+      "layerId",
+      "sourceLayerId",
+      "shortLink",
+      "format"
+    ]
+  },
+  {
+    "name": "mcp__getDsl",
+    "description": "",
+    "required": [],
+    "properties": [
+      "fileId",
+      "layerId",
+      "sourceLayerId",
+      "shortLink",
+      "format"
+    ]
+  },
+  {
+    "name": "mcp__getD2c",
+    "description": "",
+    "required": [
+      "contentId",
+      "documentId"
+    ],
+    "properties": [
+      "contentId",
+      "documentId",
+      "outDir"
+    ]
+  },
+  {
+    "name": "mcp__C2d",
+    "description": "",
+    "required": [
+      "filePath"
+    ],
+    "properties": [
+      "filePath",
+      "fileId",
+      "layerId",
+      "shortLink"
+    ]
+  },
+  {
+    "name": "mcp__getComponentLink",
+    "description": "When the data returned by mcp__getDsl contains a non-empty componentDocumentLinks array, this tool is used to sequentially retrieve URLs from the componentDocum",
+    "required": [
+      "url"
+    ],
+    "properties": [
+      "url"
+    ]
+  },
+  {
+    "name": "mcp__getMeta",
+    "description": "",
+    "required": [
+      "fileId",
+      "layerId"
+    ],
+    "properties": [
+      "fileId",
+      "layerId",
+      "sourceLayerId",
+      "format"
+    ]
+  },
+  {
+    "name": "mcp__getComponentGenerator",
+    "description": "",
+    "required": [
+      "rootPath",
+      "fileId",
+      "layerId"
+    ],
+    "properties": [
+      "rootPath",
+      "fileId",
+      "layerId",
+      "sourceLayerId"
+    ]
+  },
+  {
+    "name": "mcp__getFlutterGenerator",
+    "description": "",
+    "required": [
+      "rootPath",
+      "fileId",
+      "layerId"
+    ],
+    "properties": [
+      "rootPath",
+      "fileId",
+      "layerId",
+      "sourceLayerId",
+      "featureName"
+    ]
+  },
+  {
+    "name": "mcp__extractSvg",
+    "description": "",
+    "required": [],
+    "properties": [
+      "fileId",
+      "layerId",
+      "sourceLayerId",
+      "shortLink",
+      "backgroundColor",
+      "page",
+      "pageSize",
+      "format"
+    ]
+  },
+  {
+    "name": "mcp__applyDesign",
+    "description": "",
+    "required": [
+      "code",
+      "outDir"
+    ],
+    "properties": [
+      "fileId",
+      "layerId",
+      "sourceLayerId",
+      "shortLink",
+      "code",
+      "outDir",
+      "outputFileName",
+      "targetLang"
+    ]
+  }
+]

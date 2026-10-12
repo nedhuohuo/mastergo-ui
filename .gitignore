@@ -1,2 +1,8 @@
 .worktrees/
 .mastergo/
+# 设计稿原始落盘（体积大、可由 MCP 重新拉取）
+output/design/
+# 验证过程的临时目录
+stage/
+.mcp-bundles/
+.workbuddy/

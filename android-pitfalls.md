@@ -86,6 +86,35 @@ ffmpeg -v error -i shot.png -f rawvideo -pix_fmt rgb24 - > full.raw   # 全屏 R
 
 注意：`uiautomator dump` 里的 `text` 仍是完整原文，省略号只存在渲染层，**这类问题只能看截图发现**。
 
+## FlexboxLayout 默认 nowrap，会把 chip 压扁
+
+`com.google.android.flexbox.FlexboxLayout` 的 `flexWrap` 默认是 `nowrap`、`flexShrink` 默认 1。不写 `app:flexWrap="wrap"` 时，超额的子项会被**压扁**而不是换行：定宽项（设计写死 72）实测只剩 44.3，`wrap_content` 的标签项直接被压成一个字（「照顾孩子」渲染成「照」）。本次「我要护工」两个页面都中招。
+
+判据（uiautomator 里 `text` 仍是完整文案，**只看文案清单会全部通过**，只能量控件宽度或看截图）：
+
+- 同行多项的宽都相等且小于设计值 → 被 shrink 了。例：`6 × 72 + 5 × 12 = 492 > 327` 可用宽 → 每项被压成 `(327 − 5×12) / 6 = 44.5`（实测 44.3）。
+- 定高容器里最后一行的高度小于设计值 → 内容溢出被裁。例：容器 54（设计 = 2 行 24 + 行距 6），子项还各带 6dp `bottomMargin` 后内容变 60 → 第二行只剩 18 高。
+
+修法：
+
+```xml
+<com.google.android.flexbox.FlexboxLayout
+    app:flexWrap="wrap"              <!-- 必须显式写，默认 nowrap -->
+    app:alignItems="flex_start"
+    app:justifyContent="flex_start"
+    app:alignContent="space_between"  <!-- 容器定高、行数固定时用它分配行距 -->
+    android:layout_height="54dp" />   <!-- 2 行 24 + 行距 6 -->
+```
+
+- 行距不要用「每个子项都带一个 `bottomMargin`」：末行那个尾巴会多算一次、撑破定高容器。优先容器 `alignContent="space_between"`；改成 `wrap_content` 会改外层链条，要连带把高度补回去。
+- 每行最后一个子项的 `marginEnd` 同样会被算进宽度、可能提前换行；要「每行 N 个」就按行序去掉行尾那一个的横向 margin（`index % N == N - 1`）。
+
+## 带「行高」字样的 dimen 不一定是行高
+
+`nursing_line_height_16` 这类以字号命名、值却是行高的档位（该项目里 `_16 = 22dp`）很容易被当成「16dp 的小行」。设计稿 `容器 9` 是 `22(姓名行) + 4(gap) + 16(资料行)`，把资料行写成 22 就让右侧列从 42 变 48，把下面定高的标签流挤出容器、第二行被裁 6dp（实测容器 47.4 高、第二行 18 高）。
+
+判据：卡内链条用设计稿每个子节点的**高**逐项相加，和要等于容器高（`22 + 4 + 16 = 42`）。差几 dp 就去翻 dimen 的真实值，不要相信 dimen 名字。定高的文字行在忽略 `lineHeight` 的 ROM 上要配 `android:includeFontPadding="false"`，否则 16dp 的行会裁字。
+
 ## 验收假通过
 
 回台验证本身会骗人，下面几种都实际踩过：
