@@ -54,6 +54,22 @@
 
 还有一种相反的症状：状态栏透明（`statusBar { immersive(darkMode = true) }`）后内容会从 y=0 开始，**标题和返回会被顶进状态栏、与状态栏图标同一水平线**。这是因为 `immersive` 内部设了 `LAYOUT_FULLSCREEN`（布局入侵），必须在根布局加 `android:fitsSystemWindows="true"` 消费状态栏内边距；两者配对写法见 [android-tob.md](android-tob.md) 的「状态栏」。确诊方式：截图里标题与状态栏图标同一水平线，或返回按钮被系统图标压住。
 
+第三种：顶部带渐变的页面，**标题栏自带的白色底会把渐变截断**，看上去只剩状态栏那一条是渐变色、标题区域变白。用 `immersive` + 自绘渐变层时，标题栏要显式 `setBackgroundColor(Color.TRANSPARENT)`（`android:background` 属性不一定压得住组件构造里的赋值，放在 `initializeHeader` 之后调用）。确认方式：在屏上取竖直一条像素，标题栏那几行的颜色应该和设计稿的渐变值一致，而不是 `#FFFFFF`。
+
+## 设计稿的行高在部分 ROM 上不生效
+
+设计稿逐字给了 `lineHeight`（如 12sp→20、16sp→22），Android 侧 `android:lineHeight` 要 API 28+，而 `android:lineSpacingExtra` / `lineSpacingMultiplier` 对最后一行不生效。**实测华为 Android 12（FOA-AL00）：`android:lineHeight`、`android:lineSpacingMultiplier` 都完全无效**——属性确实编进了 APK（`aapt2 dump xmltree` 可见、dimen 值也对），视图类就是 `android.widget.TextView`，但渲染仍按默认行高（约 1.35×字号）。
+
+落地方式：
+
+- 行高属性照写（标准 Android 上有效），但**块高不要只靠它**：设计稿给了行/块高度的，再给容器显式高度兜底（行 22dp、内块 `minHeight` 52dp 之类）。两者不冲突：行高生效时文本正好填满容器，不生效时容器尺寸仍然对。
+- 验证要看**像素**而不是 uiautomator：`uiautomator dump` 在这种 ROM 上报的 TextView 高度是文本字形框（在华为上与真实视图高不一致），用截图采样块底色/描边的纵向范围才准。
+
+```bash
+ffmpeg -v error -i shot.png -f rawvideo -pix_fmt rgb24 - > full.raw   # 全屏 RGB
+# 再按目标色（如 #FFEFEE）扫一列，取连续段的 min/max y / 2.89 得到设计 dp
+```
+
 ## 组件的默认内边距会吃掉文字
 
 用组件承载设计稿时，组件的默认内容内边距会占掉量好的槽位宽度，文字放不下就变成省略号（`沟通记录` → `沟…`，整排甚至只剩 `…`）。本品实测：TAG 默认水平内边距 16dp、NORMAL 12dp，`UniversalTabLayout` 用 `universalTabContentHorizontalPadding="0dp"` 关掉。
