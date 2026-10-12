@@ -49,15 +49,15 @@
 | 头部 | 固定 | 无 | 静态 | section 2；左返回 + 居中标题；右侧 opacity=0 不实现 |
 | 选项行 | 固定 | 3 个同形态卡片 | 静态 | section 1；横向等分，gap 8；各自 navigation 到不同页 |
 | 保存区 | 固定 | 无 | 静态 | section 1 的「编组 7」与 section 4 是同一块的两个图层，只实现一次 |
-| 系统手势区 | 由系统绘制 | 无 | — | 34 高，由弹层窗口的底部内边距承担（面板白底铺到屏幕底边），不画内容 |
+| 系统手势区 | 由系统绘制 | 无 | — | 34 高，落在面板自身的 `paddingBottom`（`@dimen/nursing_bottom_inset` 34dp）里：面板白底照样铺到屏幕底边，只有内容停在 799 |
 
 ### 背景分区表（每段指到图层，任何一段都写明归属）
 
 | 区段 | y 范围 | 设计稿哪一层负责 | 颜色 / 圆角 | 实现里哪个 view 负责 |
 | --- | --- | --- | --- | --- |
-| 遮罩区 | 0–615 | Rectangle `2:77184` | rgba(0,0,0,0.6) | 弹层窗口的 dim（`nursing_bottom_dialog_theme` 的 `backgroundDimAmount` = 0.6，遮罩色是系统黑） |
+| 遮罩区 | 0–615 | Rectangle `2:77184` | rgba(0,0,0,0.6) | 弹层窗口的 dim（`R.style.BottomDialog` 的 `backgroundDimEnabled`，系统默认 0.6；遮罩色是系统黑） |
 | 面板区 | 615–799 | 容器 1409 `2:77186` / 面板底 蒙版 `2:77187` | #FFFFFF，上两角 12、下角 0 | 弹层内容布局根 `nursing_dialog_fragment_order_type`（`@drawable/nursing_bg_customer_panel`） |
-| 系统手势区 | 799–833 | 编组 2 `2:77229` / Rectangle 24 | 面板白底延续 | 弹层内容根的 `paddingBottom`（`OrderTypeDialogFragment` 消费 `systemBars().bottom`），使面板白底铺到屏幕底边 |
+| 系统手势区 | 799–833 | 编组 2 `2:77229` / Rectangle 24 | 面板白底延续 | 弹层内容根的 `paddingBottom` = `@dimen/nursing_bottom_inset`（34dp，与 2:7562 同一档），面板白底铺到屏幕底边 |
 
 ### 绝对 y 对账（设计稿绝对值，验收逐块对照）
 
@@ -75,9 +75,9 @@
 
 | 区块 | 形态 | 组件 | 行为 | 复用来源 | 需要核对的默认值 | 新建理由 |
 | --- | --- | --- | --- | --- | --- | --- |
-| 弹层容器 | 贴底弹出 + 遮罩 + 外部点击关闭 | `OrderTypeDialogFragment`（平台 `androidx.fragment.app.DialogFragment` + 全屏不浮动窗口） | 下探进出场、点遮罩关闭、点返回关闭 | AndroidX 原生 | 窗口 dim 0.6（设计是 60%，系统默认即 0.6） | 新建：`Module.universalComponents` 的 `CustomPositionPopupWindow` 继承 razerdp `BasePopupWindow`，而 `UniversalComponents` 用 `implementation`（非 `api`）引入 BasePopup，业务模块解析不到基类；`BottomSheetDialogFragment` 会套自己的圆角 / 阴影 / 拖拽行为，扰动尺寸链。故用平台原生控件，不新增依赖 |
+| 弹层容器 | 贴底弹出 + 遮罩 + 外部点击关闭 | `OrderTypeDialogFragment` 继承工程基类 `BaseDialogFragment`（`com.yishou.android.lib.base.arch.fragment`，`Module.base`） | 下探进出场、点遮罩关闭、点返回关闭 | 工程基类（与其它弹层一致） | 基类已给 `setStyle(R.style.BottomDialog, 0)`、`gravity=BOTTOM`、`setLayout(MATCH_PARENT, WRAP_CONTENT)`、`BottomDialog.Animation` | 新建子类。**不能用**两档组件：`CustomPositionPopupWindow` / `CustomBottomPopupWindow` 继承 razerdp `BasePopupWindow`，而 `UniversalComponents` 用 `implementation`（非 `api`）引入 BasePopup，业务模块解析不到基类（编译报 unresolved supertypes）；`BottomSheetDialogFragment` 会套自己的圆角 / 阴影 / 拖拽 / peek 行为，扰动尺寸链 |
 | 面板底 | 白底 + 上两角圆角 | `@drawable/nursing_bg_customer_panel` | 无 | 模块已有（同值同形：白底、上两角 12、下角 0） | — | 不新建，避免同值资源重复声明 |
-| 弹层窗口 | 贴底、不浮动、遮罩 | `@style/nursing_bottom_dialog_theme` | 进场 / 出场平移 | 模块新增（values/nursing_styles.xml） | `windowIsFloating=false` + `backgroundDimAmount=0.6` | 新建：全屏不浮动的窗口才能让「内容贴底 + 遮罩铺满整屏」同时成立 |
+| 弹层窗口 | 贴底、遮罩、按压外部关闭 | `@style/BottomDialog` + `@style/BottomDialog.Animation` | 进场 / 出场 translate 100%→0，300ms | 工程基类库自带（`Module.base`） | `backgroundDimEnabled=true`（系统 dim 默认 0.6，正好是设计值） | 不新建：自写的窗口主题与动效已删除，改用工程统一档 |
 | 头部 | 顶部固定高 + 左侧返回 + 居中标题 | `FrameLayout` + `ImageView` + `TextView` | 返回可点（关闭弹层） | 原生 | — | 头部是导航头；`CustomBottomPopupWindow` 的模板头是「取消/确定 + 关闭图标」的对话框头，且强制上 16 / 下 8 边距与 16dp 横向内边距，表达不了本设计，故不用它的模板头 |
 | 返回箭头 | 图标 | `@drawable/universal_customer_detail_ic_back`（tint 主色） | 跟随父容器点击 | `Module.universalComponents`（组件库已有图标） | 图标 16dp、fillColor #333333 → 代码 tint 成 `color_primary` | 不新建 |
 | 选项卡片 | 一排 3 个同形态圆角块 + 图标 + 文字 | `LinearLayout`（weight 1）+ `ImageView` + `TextView` | 各自可点，navigation 到 2:73133 / 2:77272 / 2:77672 | 原生 | — | 3 个是静态固定项，沿用本模块「三按钮行」的写法（静态块 + weight 1），不引入 RecyclerView |
@@ -131,7 +131,7 @@
 
 | 项 | 设计值 | 落地值 | 说明 |
 | --- | --- | --- | --- |
-| 面板高度 | 218（含手势区 34） | 内容 184 + `paddingBottom` 34 | 底部内边距 = `systemBars().bottom`，面板白底铺到屏幕底边；`799~833` 由它承担 |
+| 面板高度 | 218（含手势区 34） | 内容 184（531px）+ `paddingBottom` 34（`@dimen/nursing_bottom_inset` = 98px） | 面板白底铺到屏幕底边，`799~833` 由这段 padding 承担；本机实测面板顶 1783px（设计 615 → 1781，Δ2px） |
 | 页面左右边距 | 12 | `@dimen/nursing_page_margin` | 头部、选项行、保存条三处共用，每处只由一个 view 的 padding / margin 承担 |
 | 面板上内边距 | 16 | 根布局 `paddingTop` `space_small` | 唯一来源 |
 | 头部高 | 26 | 固定 26dp | 标题行高 26；块高写死，不依赖行高属性（部分 ROM 忽略 `android:lineHeight`） |
@@ -142,7 +142,7 @@
 | 选项行到保存条间距 | 8 | 保存区 `layout_marginTop` `space_mini` | 唯一来源 |
 | 保存条 | 375×54，按钮 351×46 @12,4 | 高 54，`paddingTop/Bottom` `space_micro`(4) + 按钮 46 | 4+46+4 = 54 |
 | 保存按钮 | 351×46、圆角 24 | match_parent × 46 | 文字 18sp 居中 |
-| 遮罩 | rgba(0,0,0,0.6) | 弹层窗口 dim（`backgroundDimAmount` = 0.6） | 系统遮罩色是黑；窗口带 `FLAG_DIM_BEHIND` |
+| 遮罩 | rgba(0,0,0,0.6) | 弹层窗口 dim（`R.style.BottomDialog` 的 `backgroundDimEnabled`，系统 dim 默认 0.6） | 系统遮罩色是黑；实测遮罩后页面底色 98 = 245×0.4，与 0.6 吻合 |
 
 ## 5. StateSpec
 
@@ -153,7 +153,7 @@
 | 保存按钮 | 默认 | #5460FE 底 + 圆角 24 + 白字 | — | 主按钮 2:77234 |
 | 保存按钮 | 按下 | 设计稿未给 | — | 不实现 |
 | 返回 | 默认 | 主色箭头 + 主色「返回」15sp | — | 容器 383 |
-| 面板 | 弹出 / 关闭 | 自下而上平移 + 遮罩；点遮罩、点返回关闭 | 打开 / 关闭弹层 | 设计稿只给静态终态，动效取平台底部弹层标准（`nursing_bottom_dialog_anim`，250 / 200ms） |
+| 面板 | 弹出 / 关闭 | 自下而上平移 + 遮罩淡入；点遮罩、点返回、点选项关闭 | 打开 / 关闭弹层 | 设计稿只给静态终态，动效取工程统一档 `BottomDialog.Animation`（translate 100%→0，300ms） |
 | 其它 | 禁用 / 加载 / 空 / 错误态 | 设计稿均未给 | — | 不实现 |
 
 ## 判定为伪影 / 冲突的项
@@ -168,15 +168,18 @@
 | 选项行宽 354 @12 | 右侧留 9，与左右 12 不对称 | 左右各 12（351） | 12 + 354 = 366 ≠ 375−12，右侧多 9；按页面边距取对称 12 |
 | 保存文字 x 偏移 | 编组 11 @143 使文字中心在 175（非页面中心 187.5） | 按钮内居中 | 主按钮文案居中，偏 12.5 属组件实例残留 |
 | 返回文字颜色 | 节点 fill #3A74FC（旧主题色）与逐字 #5460FE 冲突 | 取 `color_primary` | 同语义组冲突，取工程语义主色，不引入旧色 |
+| 选项文字颜色 | 节点 fill `rgba(0,0,0,0.85)`（≈#262626）、逐字 `paint_2:1278` | `@color/text_gy1` (#333333) | TobBaseResource 无 rgba(0,0,0,0.85) 对应项，取最近的文本档；两者差 5% 透明度（#262626 vs #333333），已记入交付说明 |
+| 保存按钮 1px 描边 | `2:77236.strokeWidth="1px"`，但 stroke 的 paint（`paint_2:02197`）值为空 | 不实现 | 描边色为空 = 组件实例残留，实现会凭空多一条边 |
+| 保存条背景 矩形 `2:77233` | `paint_2:21005`，且带 `strokeWidth=1px` | 不实现（面板白底即它的底） | 与面板同色、描边色为空 |
 
 ## 6. 实现清单
 
 - [x] 基类：`OrderTypeActivity` 继承 `BaseActivity`，入口 `afterCreate(Bundle?)`，顺序 `initView()` → `initListener()` → `initData()`；ViewBinding 用 `bindings<T>()`
-- [x] 弹层：`OrderTypeDialogFragment` 继承平台 `androidx.fragment.app.DialogFragment`；窗口样式 `nursing_bottom_dialog_theme`（不浮动 + 贴底 + dim 0.6），动效 `nursing_bottom_dialog_anim`
-- [x] 依赖：模块 `build.gradle` 未新增依赖（`appcompat` / `coreKtx` 已在）
-- [x] 资源名前缀：layout `nursing_dialog_fragment_order_type` / `nursing_activity_order_type` / drawable `nursing_bg_order_type_*` / color `nursing_color_*` / dimen `nursing_order_type_*` / style `nursing_*`
+- [x] 弹层：`OrderTypeDialogFragment` 继承工程基类 `BaseDialogFragment`（`Module.base`），窗口沿用工程 `R.style.BottomDialog` / `BottomDialog.Animation`
+- [x] 依赖：模块 `build.gradle` 未新增依赖（`Module.base` 已在；自写的 `nursing_styles.xml` 与两个 anim 文件已删除）
+- [x] 资源名前缀：layout `nursing_dialog_fragment_order_type` / `nursing_activity_order_type` / drawable `nursing_bg_order_type_*` / color `nursing_color_*` / dimen `nursing_order_type_*`
 - [x] 文案按设计稿直接写在布局里，不抽 `strings.xml`；颜色、尺寸不硬编码
-- [ ] 关键数值按 LayoutSpec 在设备上量过实际控件（见交付说明）
+- [x] 关键数值按 LayoutSpec 在设备上量过实际控件（见交付说明与第 7 节）
 
 ## 7. 验收
 
