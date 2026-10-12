@@ -19,10 +19,12 @@
 
 | 文件 | 读者 | 内容 |
 | --- | --- | --- |
-| [SKILL.md](SKILL.md) | Agent | 开工检查、两条出 UI 路径、完成标准 |
+| [SKILL.md](SKILL.md) | Agent | 开工检查、页面分析与组件判定、两条出 UI 路径、完成标准 |
 | [reference.md](reference.md) | Agent | MCP 配置、工具对照、排障 |
 | [android-tob.md](android-tob.md) | Agent | 知护办 Android：基类、TobBaseResource、命名、控件选用 |
+| [android-pitfalls.md](android-pitfalls.md) | Agent | Android 落地陷阱：尺寸塌陷、代码拼静态布局、写死尺寸、indicator 丢失 |
 | [project-contract.md](project-contract.md) | Agent | 非 Android 工程如何找设计约定 |
+| [templates/android-ui-analysis.md](templates/android-ui-analysis.md) | Agent | 实现前填写的五项分析：页面结构、组件、资源、布局、状态 |
 
 `.mastergo/` 是画布缓存，不是业务源码。
 
@@ -40,6 +42,14 @@
 ## 出 UI
 
 先拿到设计数据，再按目标工程已有基类和资源落代码。会再出现的结构抽成共享组件；只出现一次的装饰留在页面里。只实现设计稿里已经有的状态。
+
+拿到数据不等于可以写代码，按这个顺序走，前一步没完不进下一步：
+
+```text
+设计数据 → 页面结构 → 组件映射 → 资源映射 → 布局规格 → 状态规格 → 代码 → 验证
+```
+
+五项分析按 [templates/android-ui-analysis.md](templates/android-ui-analysis.md) 写下来；流程、形态判定和验收标准见 [SKILL.md](SKILL.md)，Android 工程规则见 [android-tob.md](android-tob.md)。流程骨架参考 [MasterGo Magic MCP](https://github.com/mastergo-design/mastergo-magic-mcp) 的组件工作流，平台规则由各工程专项文档覆盖。
 
 ### 链接还原（Magic）
 
@@ -71,6 +81,7 @@
 
 ## 完成标准
 
+- 实现前先完成页面结构、组件、资源、布局、状态五项分析。
 - 没有第二套按钮、导航、列表单元。
 - 知护办工程的颜色和尺寸来自 TobBaseResource。
 - 设计稿中的文案和状态都在。

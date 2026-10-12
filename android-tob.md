@@ -2,6 +2,22 @@
 
 资源只用 `TobBaseResource`（`com.yilife.android.bu.module:TobBaseResource`，源码 `common/TOBBaseResource`）。`GlobalSharedResource` 已废弃，新界面不要引用 `color_3a74fc`、`text_small`、`spacing_*` 这套旧名字。
 
+## 资源优先级
+
+资源先找后建，按这个顺序，前一档有就不往下走：
+
+```text
+MasterGo token / 十六进制或 dp、sp
+→ TobBaseResource 已有资源
+→ 当前模块资源文件里的语义别名
+→ 完全不存在时才新增模块资源
+```
+
+- 依赖声明：模块 `build.gradle` 写 `implementation Module.tobBaseResource`，不写死 groupId / artifactId / version。
+- 语义清单以 `common/TOBBaseResource/src/main/res/values/dimens_semantic.xml`、`colors.xml` 为准，不要凭印象列档位；名字对不上再退到同模块的 `dp_*` / `sp_*`。
+- 查已有资源：`grep -rn 'name="color_primary"\|name="space_small"' common/TOBBaseResource/src/main/res/values/`
+- 核对模块是否已依赖：`grep -n 'tobBaseResource' <模块>/build.gradle`
+
 ## 页面基类
 
 | 形态 | 基类 |
@@ -10,7 +26,19 @@
 | 普通 Fragment | `com.yishou.android.lib.base.arch.fragment.BaseFragment`（实现 `bindRootView`、`initData`） |
 | 列表拼装页 | `com.yilife.android.arch.page.page.BaseWidgetFragment`（`initData`、`registerData2View`、`dv`、`addData`） |
 | 单条列表项 | `SingleItemWidget` / `ItemWidget` |
-| 底部弹层 | `CustomBottomPopupWindow` 或 `BottomSheetPopup`（`common/UniversalComponents`） |
+| Dialog / 底部弹层 | `com.yishou.android.lib.base.arch.fragment.BaseDialogFragment` |
+| 自定义动画弹层 | `razerdp.basepopup.BasePopupWindow`（BasePop）；普通底部弹层也可用 `common/UniversalComponents` 的 `CustomBottomPopupWindow` / `BottomSheetPopup` |
+| ViewModel | `com.yilife.android.arch.page.viewmodel.BaseViewModel` |
+| RecyclerView 适配器 | `com.chad.library.adapter.base.BaseQuickAdapter`（BRVAH，`convert(holder, item)` 绑数据） |
+
+`com.yishou.android.lib.base.arch.activity.BaseActivity` 是遗留基类，新页面不新建。落笔前用实际引用确认，不要照抄包名：
+
+```bash
+# Activity / Fragment / ViewModel 的主用基类
+grep -rhoE 'import [a-zA-Z0-9_.]*\.Base(Activity|Fragment|ViewModel)' <模块>/src --include=*.kt | sort | uniq -c | sort -rn | head
+```
+
+本文件与颐挚规范冲突时，以当前模块实际引用为准，其次本文件，再其次颐挚规范。
 
 空态、错误态用 `BaseWidgetFragment` 的 `showEmptyView()` / `showErrorView()`。标题栏用已有 `TitleBar`。
 
@@ -115,6 +143,8 @@ ViewBinding ID 与资源文件前缀是两套规则。ID 格式 `{typePrefix}{se
 2. 工程里已经接入的三方控件。常见的有 DialogX、BasePopup、BRVAH、Lottie、SmartRefresh、Banner、DslTabLayout。以当前模块 `build.gradle` 和 `Dept.kt` 里实际依赖为准。
 3. Google / AndroidX 原生控件。
 
+选好组件不等于能用对：落代码前按 [SKILL.md](SKILL.md)「什么时候用自定义控件」的核对三条确认组件能力、默认内边距和最小尺寸——默认值会吃掉量好的宽高，实测对不上先算这个差值。
+
 两档都对不上时：结构简单的控件在模块内实现；结构复杂的先找有没有合适的三方库，把库名和用途交给宿主决定，不要自行加入依赖。不得复制 UniversalComponents 组件或新建第二套按钮、导航、列表单元。
 
 ### UniversalComponents 依赖接入
@@ -131,4 +161,4 @@ const val universalComponents = "com.yilife.android.bu.module:UniversalComponent
 - 看到 `// implementation project(":UniversalComponents")` 是迁移前的本地依赖，保持注释，改用 `Module.universalComponents`。
 - 版本由 AppShell 的 `Dept.kt` 统一维护；需要升版时说明原因交宿主决定，不擅自改 SNAPSHOT 版本。
 
-新建自定义 View 只在这三档实现不了设计效果时发生。环形或多段进度、波形和趋势、按设计稿定制的轨道滑块、必须响应点击的蒙版热区、随业务状态整块重画的图形，才新建。静态装饰用图标，不新建 View。布局文件 `{prefix}_view_`，ID 用 `view_`。
+新建自定义 View 只在这三档实现不了设计效果时发生。环形或多段进度、波形和趋势、按设计稿定制的轨道滑块、必须响应点击的蒙版热区、随业务状态整块重画的图形，才新建。静态装饰用图标，不新建 View。布局文件 `{prefix}_view_`，ID 用 `view_`。新建前写下四件事：效果、现有组件为什么不够、控件负责画什么、外面传进什么数据和状态。
