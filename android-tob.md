@@ -50,6 +50,8 @@ grep -rhoE 'import [a-zA-Z0-9_.]*\.Base(Activity|Fragment|ViewModel)' <模块>/s
 
 Activity 不重写 `onCreate`，使用 `afterCreate(Bundle?)`，初始化顺序固定为 `initView()` → `initListener()` → `initData()`。Fragment 默认实现 `bindRootView()`、`initData()`；ViewBinding 使用 `_binding` 可空模式，并在 `onDestroyView()` 置空。
 
+**ViewPager2 的每一页都是 Fragment（`BaseFragment` 子类）+ `FragmentStateAdapter`**，工程既有写法是 `listOf(fragment...)` + `createFragment(position) = pages[position]`、`offscreenPageLimit = pages.size - 1`（传 0 会抛 `IllegalArgumentException: Offscreen page limit must be ... a number > 0`）。不要用 `RecyclerView.Adapter` 把布局当页面填进 ViewPager2：分页就是页面，页面就要有生命周期。设计稿未给内容的页签同样给一个空 Fragment（例如 `EmptyTabFragment`，直接返回空 `FrameLayout`、不建布局文件），不编造文案。`BaseFragment` 来自 `Module.base`（`com.yilife.health.lib:base`），工程开了 `android.nonTransitiveRClass` 也不会把它传递进来，模块要用就得显式加 `implementation Module.base`。
+
 ViewModel 只负责页面状态编排、请求入口和用户意图处理，不直接持有或操作 View、Binding、Context、Adapter、Dialog、PopupWindow；跳转、Toast、弹窗和 View 绑定由 Activity / Fragment 宿主负责。`UiState` 只封装同一块 UI 的强关联展示结果，一次性事件、输入值和不同消费方状态独立传递。
 
 UI 复杂度按 ViewModel → Processor → Mapper → Policy → Resolver → `ui/controller` / `ui/view` 的职责顺序拆分，不为减少文件行数泛化 `Helper`、`CommonUtils`、`DataUtils` 或 `ViewUtils`。Kotlin 属性 setter 只做赋值，需要副作用时使用显式 `setXxx()` 方法。
@@ -124,6 +126,8 @@ override fun afterCreate(p0: Bundle?) {
 | 列表项 | `item_` | `{prefix}_item_chat_message` |
 | PopupWindow | `pop_` | `{prefix}_pop_invite` |
 | 自定义 View | `view_` | `{prefix}_view_top_bar` |
+
+**一个页面 / 一个 Fragment 对应一个布局文件**，区块直接写在里面，不用 `<include>` 拆文件：工程里 689 个布局只有 28 个用 include，include 拆出来的是“布局片段”，既不是页面也不是控件，改一处要跳好几个文件。真正跨页面复用的公共块才用 include（标题栏、底部栏这类已在组件库里的除外）。需要重复的单元（列表项、标签、字段行）用 `{prefix}_item_` 布局 + RecyclerView / FlexboxLayout 逐项 inflate，不是 include。
 
 ### drawable
 

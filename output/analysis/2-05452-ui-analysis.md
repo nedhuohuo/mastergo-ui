@@ -36,7 +36,7 @@
 | --- | --- | --- | --- | --- |
 | 导航栏 | 顶部固定高 + 左返回 + 居中标题 | `TitleBar` | `initializeHeader("报告详情")`、`setLeftOne()` → finish | `Module.titleBar`（上一页同款） |
 | 页签行 | 一排文字 + 选中下划线 | `UniversalTabLayout`（EQUAL） | `setupViewPager2` 双向同步切换内容 | `Module.universalComponents` |
-| 页签内容容器 | 翻页 | `ViewPager2` | 3 页；第 2 页（AI分析）是设计稿内容，前两页设计稿未给 → 空白页 | `ThirdDependence.AndroidX.viewPager2` |
+| 页签内容容器 | 翻页 | `ViewPager2` + `FragmentStateAdapter` | 3 页，每页一个 Fragment：第 2 页（AI分析）是设计稿内容，前两页设计稿未给 → `EmptyTabFragment` 空白页 | `ThirdDependence.AndroidX.viewPager2` + `Module.base`（`BaseFragment`） |
 | 白色卡片 / 灰底摘要块 / 竖条 | 圆角块 | shape drawable + `LinearLayout` | 无交互 | 原生 |
 | 分类标签 | 胶囊 + 圆点 + 文字 | `FlexboxLayout` + 逐项 inflate 的 `LinearLayout` | 「全部」选中态；点选切换留空实现 | `ThirdDependence.Flexbox.flexbox` |
 | 具体标签 | 圆角小标签 | `FlexboxLayout` + `TextView` | 无交互 | 同上 |

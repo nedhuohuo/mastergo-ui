@@ -97,6 +97,34 @@ ffmpeg -v error -i shot.png -f rawvideo -pix_fmt rgb24 - > full.raw   # 全屏 R
 | 「断言 `clickable` 失败」 | 可点区在文字外面的容器上，不在文字节点 | 取包含文字中心的最小可点节点 |
 | 「同一文案判定错行」 | 同一段文案在多排结构里重复（如「全部」同时在两排），按文案取到第一个 | 先按行容器定位，再在容器范围内找项 |
 | 「切页没生效」 | 点击时页签行还在滚动，或翻页动画未结束 | 点击前等锚点位置稳定，断言用轮询等状态而不是单次 dump |
+| 「块内尺寸全对、卡片位置也对」 | 只量了块内尺寸和块间间距，没量绝对 y；间距被两层各吃一次时这几项都是正常的 | 逐块对设计稿的绝对 y（见下节） |
+| 「用的是这次实测的数字」 | 数字来自改动那一版之前（重构、加一层 padding、换容器后链条已变） | 结构一改就整表重跑，交付说明标注测量版本 |
+
+## 绝对坐标对账
+
+块内尺寸、块间间距、颜色全部对，位置仍可能错——只要链条上多一个或少一个 12dp。唯一能抓到的是**拿设计稿的绝对 y 逐块对**。实测方法（这台机器 AutoSize 下 1 设计 dp = 2.89px）：
+
+- 不要用「扫一列找连续同色段」这种脆方法：块里有文字、内嵌白块、chip，同色段会被切碎；`tol` 放宽到 6 还会把相邻两块的颜色认成同一块（`#EEEFFF` 与 `#F4EEFF` 只差 6）。
+- 改成**从上往下找第一个命中色**得到块顶，**从下往上找第一个命中色**得到块底，`tol` 收到 2。
+- 采样列要同时避开文字和圆角：文字距卡片左边缘 12dp 内边距，贴在 12dp 边距外的列（如 x=200px 处）既在卡片内、又在文字左边、也在圆角半径之外（半径 12dp = 35px，x 要 ≥ 距左边缘 35px）。
+
+```python
+W, D = 1084, 2.89            # 1084px 宽 / 375 设计宽
+c = open('shot.raw','rb').read()
+def px(x, y):
+    i = (y * W + x) * 3
+    return (c[i], c[i+1], c[i+2])
+def near(a, b, tol):
+    return all(abs(u - v) <= tol for u, v in zip(a, b))
+def first(color, y0, y1, tol=2, x=200):     # 块顶
+    for y in range(int(y0*D), int(y1*D)):
+        if near(px(x, y), color, tol): return round(y/D, 1)
+def last(color, y0, y1, tol=2, x=200):      # 块底
+    for y in range(int(y1*D), int(y0*D), -1):
+        if near(px(x, y), color, tol): return round(y/D, 1)
+```
+
+断言表按「设计稿 y → 实测 y」逐行写进交付说明，超 2dp 就回头查链条：从前一个块的底 + 设计稿间距 推算当前块的顶，看差在哪个容器的 padding / margin 上。实例：`.png → .raw` 用 `ffmpeg -v error -i shot.png -f rawvideo -pix_fmt rgb24 - > shot.raw`。
 
 ## 选中态 / indicator 只声明在其中一个容器里
 

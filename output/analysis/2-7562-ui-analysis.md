@@ -33,7 +33,7 @@
 | --- | --- | --- | --- | --- |
 | 标题栏 | 顶部固定高 + 左返回 + 居中标题 | `TitleBar` | `initializeHeader("客户详情")`、`setLeftOne()` 点击 finish | `Module.titleBar`（上个页面同款） |
 | 页签行 | 一排文字 + 选中下划线 | `UniversalTabLayout`（NORMAL） | `setTabs` + `OnTabSelectedListener` 切换内容容器 | `Module.universalComponents` |
-| 页签内容容器 | 翻页 | `ViewPager2` | 4 页，页 0 = 设计稿内容，页 1-3 设计稿未给 | `ThirdDependence.AndroidX.viewPager2` |
+| 页签内容容器 | 翻页 | `ViewPager2` + `FragmentStateAdapter` | 4 页，每页一个 Fragment：页 0 = 设计稿内容（`CustomerMainFragment`），页 1-3 未给 → `EmptyTabFragment` | `ThirdDependence.AndroidX.viewPager2` + `Module.base`（`BaseFragment`） |
 | 客户卡片 | 卡片 + 字段 + 图标位 | `LinearLayout` + `TextView` + `ImageView` | 图标按钮可点（目标未定，留空实现） | 原生 |
 | 无效线索斜条 | 旋转色块 + 文字 | `TextView` + `android:rotation` | 无交互（装饰） | 原生 |
 | 未成单反馈卡片 | 卡片 + 标签 + 文案 | `LinearLayout` + 带底 `TextView` | 无交互 | 原生 |
