@@ -86,7 +86,7 @@
 - [ ] 基类：Activity / Fragment / Dialog / Popup / Adapter / ViewModel 按工程规范继承，入口方法正确
 - [ ] 依赖：`UniversalComponents`、`TobBaseResource` 已存在或只补一行
 - [ ] 资源名前缀、layout / drawable / mipmap 命名符合模块规范
-- [ ] 文案进 `strings.xml`，没有硬编码颜色、尺寸和用户可见文案
+- [ ] 文案进 `strings.xml`：静态文案直接引用，动态文案写成带 `%1$s` / `%1$d` 占位符的 string，没有硬编码颜色、尺寸和用户可见文案
 - [ ] 关键数值已按 LayoutSpec 量过实际控件
 
 ## 7. 验收

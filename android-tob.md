@@ -40,7 +40,13 @@ grep -rhoE 'import [a-zA-Z0-9_.]*\.Base(Activity|Fragment|ViewModel)' <模块>/s
 
 本文件与颐挚规范冲突时，以当前模块实际引用为准，其次本文件，再其次颐挚规范。
 
-空态、错误态用 `BaseWidgetFragment` 的 `showEmptyView()` / `showErrorView()`。标题栏用已有 `TitleBar`。
+空态、错误态用 `BaseWidgetFragment` 的 `showEmptyView()` / `showErrorView()`。
+
+标题栏用 `com.yilife.android.widget.component.titlebar.TitleBar`，依赖写 `implementation Module.titleBar`（`com.yilife.android.widget.component:titleBar:1.0.3`）。模块 `build.gradle` 没有这一行就先补上，不写死 groupId / artifactId / version。
+
+圆角按钮优先 `com.yilife.android.widget.component.shapetextview.ShapeTextView`（依赖 `implementation Module.shapeTextview`，`com.yilife.android.widget.component:shapeTextview:1.0.1`）：背景、圆角、描边、按下/禁用态都在控件属性里配（`app:solidColor`、`app:radius`、`app:solidColorPressed`、`app:solidColorEnable`、`app:strokeWidth`、`app:strokeColor`），不为了圆角再写一份 `bg_` drawable，也不为了按下态去写 `sel_` 选择器。
+
+`ShapeTextView` 表达不了时（需要复杂内嵌图标、多段富文本、自定义绘制）用普通 `TextView` + 模块 `{prefix}_bg_` drawable。两者都优先于 `MaterialButton`。ID 统一用 `btn_`。
 
 Activity 不重写 `onCreate`，使用 `afterCreate(Bundle?)`，初始化顺序固定为 `initView()` → `initListener()` → `initData()`。Fragment 默认实现 `bindRootView()`、`initData()`；ViewBinding 使用 `_binding` 可空模式，并在 `onDestroyView()` 置空。
 
@@ -53,6 +59,8 @@ UI 复杂度按 ViewModel → Processor → Mapper → Policy → Resolver → `
 主色 `color_primary` `#5460FE`，按下 `color_primary_dark`，浅阶 `color_primary_v1`–`v7`。成功 / 警告 / 错误 / 紫用 `color_success`、`color_warning`、`color_error`、`color_purple` 及对应 `_dark`、`_v1`–`_v7`。
 
 文字 `text_gy1` `#333333` 到 `text_gy6`，白字 `text_white`。边框 `border_*`，填充 `fill_*`，页面底 `bg_page`，卡片底 `bg_base`。
+
+设计稿色系一律落到本节的 `TobBaseResource` 语义色，不在业务模块新增同义色：蓝用 `color_primary` 及 `_v1`–`_v7`，红用 `color_error` 及 `_v1`–`_v7`，灰阶用 `text_gy*` / `fill_*` / `bg_page`。设计稿用的是旧色值时以 `TobBaseResource` 为准，实测色差（例如设计稿 `#3A74FC` 对 `color_primary` `#5460FE`）写进交付说明，不新增模块色去凑旧值。
 
 ## 尺寸
 
@@ -143,7 +151,7 @@ ViewBinding ID 与资源文件前缀是两套规则。ID 格式 `{typePrefix}{se
 2. 工程里已经接入的三方控件。常见的有 DialogX、BasePopup、BRVAH、Lottie、SmartRefresh、Banner、DslTabLayout。以当前模块 `build.gradle` 和 `Dept.kt` 里实际依赖为准。
 3. Google / AndroidX 原生控件。
 
-选好组件不等于能用对：落代码前按 [SKILL.md](SKILL.md)「什么时候用自定义控件」的核对三条确认组件能力、默认内边距和最小尺寸——默认值会吃掉量好的宽高，实测对不上先算这个差值。
+选好组件不等于能用对：落代码前按 [SKILL.md](SKILL.md)「什么时候用自定义控件」的核对三条确认组件能力、默认内边距和最小尺寸——默认值会吃掉量好的宽高，实测对不上先算这个差值。圆角按钮与标题栏按 `## 页面基类` 里的 `ShapeTextView` / `TitleBar` 走，不要另写一套。
 
 两档都对不上时：结构简单的控件在模块内实现；结构复杂的先找有没有合适的三方库，把库名和用途交给宿主决定，不要自行加入依赖。不得复制 UniversalComponents 组件或新建第二套按钮、导航、列表单元。
 
