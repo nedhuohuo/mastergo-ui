@@ -60,7 +60,9 @@ UI 复杂度按 ViewModel → Processor → Mapper → Policy → Resolver → `
 
 文字 `text_gy1` `#333333` 到 `text_gy6`，白字 `text_white`。边框 `border_*`，填充 `fill_*`，页面底 `bg_page`，卡片底 `bg_base`。
 
-**设计稿色系以 `TobBaseResource` 为准。** 蓝用 `color_primary` 及 `_v1`–`_v7`，红用 `color_error` 及 `_v1`–`_v7`，灰阶用 `text_gy*` / `fill_*` / `bg_page`；设计稿里的旧色值按这个映射落地，不在业务模块新增同义色去凑旧值，也不因色差退回设计侧。实测色差（例如设计稿 `#3A74FC` → `color_primary` `#5460FE`）只看是不是设计侧该同步修正的问题，记录进交付说明即可，实现不改。
+**设计稿色系以 `TobBaseResource` 为准。** 蓝用 `color_primary` 及 `_v1`–`_v7`，红用 `color_error` 及 `_v1`–`_v7`，灰阶用 `text_gy*` / `fill_*` / `bg_page`；设计稿里的旧色值按这个映射落地，不因色差退回设计侧。实测色差（例如设计稿 `#3A74FC` → `color_primary` `#5460FE`）只看是不是设计侧该同步修正的问题，记录进交付说明即可，实现不改。
+
+`TobBaseResource` 里确实找不到对应项的颜色（非语义色阶、一次性渐变、透明叠加色），在当前开发模块按 `{prefix}_color_` 命名定义，不用近似色阶硬套。
 
 ## 尺寸
 
@@ -76,11 +78,11 @@ UI 复杂度按 ViewModel → Processor → Mapper → Policy → Resolver → `
 
 业务资源以该模块 `resourcePrefix` 的 `{prefix}_` 开头。落新文件前先看该模块 `build.gradle` 的 `resourcePrefix` 和已有 layout 文件名，按已有前缀写，不要另起一套。
 
-能引用 `TobBaseResource` 的颜色、字号、间距、圆角时直接引用，不要在业务模块再声明一份同值资源。禁止在 XML / Kotlin 中硬编码颜色、尺寸和用户可见文案；文案放入 `strings.xml`，颜色和尺寸先查语义 token，确无对应项才新增模块资源。
+能引用 `TobBaseResource` 的颜色、字号、间距、圆角时直接引用，不要在业务模块再声明一份同值资源。禁止在 XML / Kotlin 中硬编码颜色和尺寸；文案按「模块资源命名」表的规则处理。颜色和尺寸先查语义 token，确无对应项才新增模块资源。
 
 | 类型 | 格式 | 示例 |
 | --- | --- | --- |
-| 文案 | `{prefix}_{feature}_{desc}` | 放 `strings.xml`，用户可见文案不写死在布局或代码里 |
+| 文案 | `{prefix}_{feature}_{desc}` | 默认放 `strings.xml`；按 `mastergo-ui` 技能还原设计稿的页面，允许把设计稿文案直接写在布局里（见 SKILL.md），其余仍不写死在布局或代码里 |
 | 模块自有颜色 | `{prefix}_color_{semantic}` | `{prefix}_color_text_`、`_bg_`、`_divider`、`_status_`、`_primary` |
 | 模块自有尺寸 | `{prefix}_radius_` / `_height_` / `_icon_size_` / `_padding_` | 语义档和 `dp_*` / `sp_*` 都对不上时才新建 |
 
