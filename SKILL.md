@@ -92,7 +92,7 @@ description: >-
 | PageStructure | 页面 → 区域 → 容器 → 重复单元的层级树 | 每个区块都能归到一个区域，重复结构已标出 |
 | ComponentMap | 区块 → 形态 → 组件 → 行为 → 复用来源 | 每块都写了组件和行为，复用项有工程出处 |
 | ResourceMap | 设计值 → TobBaseResource / 模块资源 / 图标来源 | 颜色、尺寸、字号、圆角都有出处，无待定值 |
-| LayoutSpec | 页面边距、区块间距、Item 间距、组件尺寸、对齐 | 关键数值能对着设计稿量出来 |
+| LayoutSpec | 页面边距、区块间距、Item 间距、组件尺寸、对齐、圆角 / 描边（逐元素） | 关键数值能对着设计稿量出来 |
 | StateSpec | 默认 / 选中 / 按下 / 禁用 / 加载 / 空 / 错误态 | 只列设计稿里真实出现的状态 |
 
 模板见 [templates/android-ui-analysis.md](templates/android-ui-analysis.md)；知护办的资源、组件和基类选用见 [android-tob.md](android-tob.md)。
