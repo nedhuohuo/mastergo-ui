@@ -124,6 +124,50 @@ ffmpeg -v error -i shot.png -f rawvideo -pix_fmt rgb24 - > full.raw   # 全屏 R
 
 判据：卡内链条用设计稿每个子节点的**高**逐项相加，和要等于容器高（`22 + 4 + 16 = 42`）。差几 dp 就去翻 dimen 的真实值，不要相信 dimen 名字。定高的文字行在忽略 `lineHeight` 的 ROM 上要配 `android:includeFontPadding="false"`，否则 16dp 的行会裁字。
 
+## 模块不要新建 dp / sp / 颜色：先查 TobBaseResource 的 `dp_*` / `sp_*` 标尺
+
+`TobBaseResource` 不只有语义档：`dp_*` 有 1201 档（`dp_0`…`dp_600`，含 `.5`）、`sp_*` 有 100 档，形状值几乎全在里面。**同一个值只要 TobBaseResource 有，就不许在模块里再建一份——包括「语义别名」。** 判据很简单：`grep '<dimen name="dp_17"' <TobBaseResource 的 values.xml>` 有 `17dp`，模块就不该有第二个 17dp。
+
+代价是实测过的：一个测试模块里 138 个模块 dimen，**逐个查下来 138 个都能在 TobBaseResource 找到同值的 `dp_*` / `sp_*`**——等于把标尺抄了一遍，改一个设计值要改两处、还会漂移。删掉之后模块的 `values/` 只剩颜色文件里的设计稿专有色。
+
+**Kotlin 是唯一的硬约束**：工程开了 `nonTransitiveRClass`，业务模块的 Kotlin 取不到依赖模块的 R（实测写 `com.yilife.android.bu.module.tob.resource.R.dimen.dp_26` 编译报 `Unresolved reference: R`）。以往模块别名几乎都是为了「代码里要设这个值」而建的。正确做法是把值搬回 XML，而不是新建模块资源：
+
+| 代码里原本在设 | 改成 |
+| --- | --- |
+| `tab.setTabItemHeightPx(resources.getDimensionPixelSize(...))`、`setTabItemSpacingPx`、`setTabTextSizePx`、`setTabTextColors`、`setTabDefaultBackground`、`setTabIndicator*` | 布局里的 `app:universalTabItemHeight` / `ItemSpacing` / `TextSize` / `SelectedTextColor` / `DefaultTextColor` / `DisabledTextColor` / `DefaultBackground` / `Indicator*`（枚举值小写：`normal` / `tag` / `card`、`equal` / `fixed` / `wrap_content`） |
+| `radio.setRadioIconSizePx` / `setCheckboxIconSizePx` / `setCheckboxCheckedIcon` | item 布局里的 `app:radio_iconSize` / `app:radio_iconPadding` / `app:checkbox_iconSize` / `app:checkbox_iconPadding` / `app:checkbox_checkedIcon` / `app:checkbox_uncheckedIcon` |
+| inflate chip 后 `(root.layoutParams as FlexboxLayout.LayoutParams).marginEnd = gap` | 间距写在该 item 布局的 `layout_marginEnd` / `layout_marginBottom` 上；只有「行尾清零」这种索引逻辑留在代码里（`if (index % N == N - 1) marginEnd = 0`） |
+| 选中态 `setTextColor(ContextCompat.getColor(this, if (sel) R.color.a else R.color.b))` | `res/color/` 选择器：`<item android:state_selected="true" android:color="@color/color_primary"/>`，布局里 `android:textColor="@color/..._selector"`，代码只切 `view.isSelected = sel` |
+| 多行文本按行数写死块高（`layoutParams.height = 64dp/96dp`） | `android:maxLines` 在代码里切（Int，不需要资源），行距用 `android:lineSpacingExtra`；实测 12sp 文字 + `@dimen/dp_2.5` 正好是设计稿 16dp 的行距，块高自然落到 64 / 96，不依赖被 ROM 忽略的 `android:lineHeight` |
+
+**值确实 TobBaseResource 没有时才新建**，并在分析文档 ResourceMap 的备注列写明「TobBaseResource 无此值」。
+
+**机械替换的坑**：把 `@dimen/nursing_x` 批量换成 `@dimen/dp_N` 时，短名是长名的前缀会漏网——`nursing_report_dot`（5dp）会命中 `nursing_report_dot_gap`（4dp）的前半段，变成 `@dimen/dp_5_gap`；`nursing_order_row_height` 命中 `..._form` / `..._line` / `..._2line`。替换后必须扫一遍 `grep -rE "@dimen/(dp|sp)_[0-9.]+[a-z_]" res/`，命中即残渣，按「谁是谁的前缀」反查真实值逐个修正。
+
+## XML 布局要带 tools 预览属性（tools:text / tools:src）
+
+布局里那些**由代码 `setText` / `setImageResource` 填值的控件**（列表 item、页头字段、卡片正文、动态图标位），一律补一个 `tools:text` / `tools:src`，值就写设计稿上的那一条真实数据。根节点加 `xmlns:tools="http://schemas.android.com/tools"`。
+
+```xml
+<TextView
+    android:id="@+id/tv_follow_name"
+    android:textColor="@color/text_gy1"
+    tools:text="马小跳" />
+
+<ImageView
+    android:id="@+id/iv_follow_avatar"
+    android:scaleType="centerCrop"
+    tools:src="@mipmap/nursing_ic_follow_avatar" />
+```
+
+为什么：
+
+- 没有 `tools:*` 时，**预览里这些控件全是空白**，只能靠跑真机截图对照设计稿；预览是唯一能在写布局阶段就看出「字号不对 / 行数不对 / 图片位空着」的手段。
+- `tools:*` 只在 IDE 预览生效、**不进 APK**，不影响真机表现，也不与代码里的绑定冲突（同名的 `android:text` 只在写死文案时用）。
+- 列表的 RecyclerView 补 `tools:listitem="@layout/xxx_item"`，预览里直接看到整行卡片，不用把 item 布局单独打开猜。
+
+对照检查：布局里每个 `@+id/` 且代码里会 `setText`/`setImage*` 的控件，都应该有对应的 `tools:` 值；反过来，静态文案（设计稿写死、代码不碰）直接写 `android:text`，不要再写一遍 `tools:text`。
+
 ## 验收假通过
 
 回台验证本身会骗人，下面几种都实际踩过：

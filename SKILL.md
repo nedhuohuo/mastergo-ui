@@ -41,6 +41,8 @@ description: >-
 - [ ] 每块区域先定：自己绘制、用图标，或自定义控件。自定义控件写下效果和传入的数据
 - [ ] 对着设计图把每个区块写成「形态 → 组件 → 行为」，形态按 [先看形态，再定组件](#先看形态再定组件) 判；一页有多排同形态结构时逐排写
 - [ ] 写布局前读 [android-pitfalls.md](android-pitfalls.md)（尺寸塌陷、代码拼布局、写死尺寸）
+- [ ] 布局里由代码 setText / setImage* 的控件带 `tools:text` / `tools:src`，列表带 `tools:listitem`（预览要直接看到设计稿数据；规则见 [android-pitfalls.md](android-pitfalls.md)）
+- [ ] 尺寸 / 颜色先查 TobBaseResource 的 `dp_*` / `sp_*` 与语义档；有同值就不在模块新建（组件配置写 XML、间距写 item margin、状态色写 selector）
 - [ ] 知护办：资源名带模块前缀，控件 ID 只带类型前缀，控件按 UniversalComponents → 已接入三方 → 原生选用
 - [ ] 知护办：图标先用 UniversalComponents，没有再从 MasterGo 取 webp，按 `{prefix}_ic_` 放进当前模块 `mipmap-xhdpi`
 - [ ] 颐挚：已检索 UniversalComponents，且当前模块 `build.gradle` 已有 `implementation Module.universalComponents`，能复用时不得复制或重写
@@ -215,11 +217,18 @@ Maven 包会被 Java 与 Kotlin 模块同时依赖，对外入口按 Java 可调
 ```text
 MasterGo token/十六进制或 dp/sp
 → TobBaseResource 已有资源
-→ 模块资源文件中的语义别名
-→ 仅在不存在时新增资源
+→ 仅在 TobBaseResource 确实没有该值时，才在当前模块新建
 ```
 
-不要把已存在的颜色写成新的十六进制值，也不要把已存在的 `dp_*` / `sp_*` 重复定义。颜色核对不能只看节点主色，还要检查连接线、空心描边、节点底色、错误底色、文字和图标色。
+**TobBaseResource 有同值的 dp / sp / 颜色时，禁止在当前模块新建资源——包括「语义别名」。** 它的 `dp_*` 标尺有 1201 档（`dp_0`…`dp_600`，含 `.5`）、`sp_*` 有 100 档，形状值几乎全都在里面；语义档 `space_base` / `space_mini` / `space_micro` / `radius_small` / `radius_large` / `radius_larger` / `font_basic_*` 也在里面。所以「模块资源文件」在正常页面里应该只留**TobBaseResource 没有的那些值**（如设计稿专有的浅色底、8% 描边、页面底色），不应该是尺寸的仓库。
+
+落地顺序（模块不新建的前提全靠这三条）：
+
+1. **组件能靠 XML 属性配的，一律写进布局**：`UniversalTabLayout` 的 `app:universalTab*`（样式 / 模式 / 项高 / 间距 / 字号 / 内边距 / 选中加粗 / 三个文字色 / 默认背景 / indicator）、`CheckboxComponents` / `RadioButtonComponents` 的 `app:radio_*` / `app:checkbox_*`（图标尺寸 / 内边距 / 选中与未选中图标）。Kotlin 只在数据层面（`setTabs` 的标题与选中项）动。
+2. **间距落回 item 布局的 margin**：chip / 标签流的横向纵向间距写在该 item 布局的 `layout_marginEnd` / `layout_marginBottom` 上，不要 inflate 后再用 `resources.getDimensionPixelSize` 补 margin。行尾要清零这类索引逻辑可以在代码里把 `marginEnd` 置 0，但值来自布局。
+3. **状态色用 `res/color/` 选择器**：`state_selected` / `state_checked` 指向 TobBaseResource 的颜色，代码只切 `view.isSelected`，不在 Kotlin 里查 `R.color`（工程开了 `nonTransitiveRClass`，Kotlin 本来就取不到依赖模块的 R，这正是以往被写成模块别名的地方）。
+
+只有 TobBaseResource 确实没有时，才在模块资源文件里新建，并在分析文档 ResourceMap 的「备注」列写明「TobBaseResource 无此值」，而不是笼统写「新增」。颜色核对不能只看节点主色，还要检查连接线、空心描边、节点底色、错误底色、文字和图标色。
 
 方向互斥时，共用一个运行时配置字段没有问题：例如组件同一时刻只处于横向或纵向，`itemSpacingPx` 可以按当前方向使用一个默认值。不要仅因为两个方向的设计值不同就拆成两套属性；先确认是否会同时生效。
 
@@ -274,5 +283,7 @@ MasterGo token/十六进制或 dp/sp
 | 交互结构保真（页签 / 分页 / 下拉 / 标题栏） | 「先看形态，再定组件」的形态表 |
 | 图标还原（形状、切图、复用顶替） | 「自己绘制，还是用图标」 |
 | Android 编码陷阱（尺寸塌陷、代码拼布局、写死尺寸） | [android-pitfalls.md](android-pitfalls.md) |
+| XML 布局的 tools 预览属性（tools:text / tools:src / tools:listitem） | [android-pitfalls.md](android-pitfalls.md) |
+| 模块新建 dp / sp / 颜色（该不该建、怎么避开） | [android-pitfalls.md](android-pitfalls.md) |
 | 圆角被铺满的子 View 盖掉（背景圆角不裁切） | [android-pitfalls.md](android-pitfalls.md) |
 | 验收方法 | 「完成标准」 |
