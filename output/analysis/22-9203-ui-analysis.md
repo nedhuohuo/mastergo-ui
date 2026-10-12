@@ -171,9 +171,27 @@
 | 组件尺寸（宽 × 高） | 分段控件 200×26；下拉框 68×26；卡片 351×192/224/208；头像 36×36；标签 49/59×17；图片 80×80 | 各自 item 布局 | 卡片高由内容撑开（正文块 64 / 96、图片 80），不写死卡片高 |
 | 字号 / 行高 | 标题 18sp；页签 16sp；姓名 14sp；元信息/正文/评论/展开 12sp；标签 10sp | 各 TextView | 语义档 `font_medium` / `font_basic_large` / `font_basic_body` / `font_basic_micro` + `nursing_follow_tag_text_size` |
 | 行内对齐（卡内每一行） | 卡片头：40 高、头像 36 顶部偏移 2（= 行内居中）、右列贴顶（姓名 20 + 4 + 元信息 16）；标签行：贴顶、两行 17 高、行距 6、列距 10；正文：贴顶、行距 16；展开/收起：贴正文底、右对齐（设计 x=292 = 351−59）；评论行：16 高、图标顶部偏移 2、文字 12sp 贴顶 | 卡片 item 各行 | 卡片头 `gravity=center_vertical`（40 与 36 差 4，居中后顶部偏移正好 2）；标签用 FlexboxLayout `flex_wrap=wrap` + 自身 margin；正文块高写死、文本 `gravity=top`；展开/收起用 FrameLayout 的 `layout_gravity=bottom|end`；评论行 `gravity=center_vertical` |
-| 圆角 | 内容底上两角 12；分段块 4；下拉框 4；标签 4；头像圆形；图片 6 | 内容底 / 分段 drawable / 下拉框 drawable / chip drawable / 头像位 / 图片位 | 内容底用 `@drawable/nursing_bg_customer_panel`；分段、下拉框、chip 各自 shape drawable；头像与图片位 = 圆角/圆形背景 drawable + 铺满 `ImageView`（`scaleType=centerCrop`） |
-| 圆角实现机制 | 头像 36 圆形、图片 80 圆角 6 | 头像 `FrameLayout` 背景 + 图片位 `ImageView` 背景 | 两处都加 `android:clipToOutline="true"`：背景 drawable 的 outline 决定裁切，不加裁切时 `centerCrop` 的图会盖掉圆角（见 [android-pitfalls.md](../../android-pitfalls.md)） |
 | 对齐关系 | 页签行右对齐（末项右边缘 = 内容右边缘）；筛选行两端对齐（分段在左、筛选组在右）；元信息行左起、项间距 2；展开/收起右对齐 | 页签容器 / 筛选行 / 元信息行 / 正文块 | 页签沿用组件右对齐；筛选行 `gravity=center_vertical` + 分段固定 200 + 右侧组 wrap + `space-between`；元信息行内 7 个 TextView 依次排列 |
+
+### 圆角 / 描边（逐元素，不按页写一个值）
+
+| 元素（设计稿 id / name） | 圆角（四角全写） | 描边 / 内边距 | 谁画、谁裁 |
+| --- | --- | --- | --- |
+| 容器 4972 白色内容底（splitContainer，按 layer_id 回查该层元数据） | 12px 12px 0px 0px | 无 | `@drawable/nursing_bg_customer_panel` 画在 `ll_panel` 上；页签 / 筛选行 / 卡片全在它上面、无铺满子 View，不需要裁切 |
+| 22:9331 分段控件左端「全部」块 | 4px 0px 0px 4px | 1px `#DCDDE5` 内描边 | `nursing_bg_follow_outline`（四角都 4，与设计的两角不同，见伪影表）；纯 shape 背景，无子 View |
+| 22:9339 分段控件右端「跟进记录」选中块 | 0px 4px 4px 0px | 无 | `nursing_bg_follow_segment_selected`（四角都 4，同上） |
+| 22:9348 筛选下拉框 | 4px 4px 4px 4px | 1px `#DCDDE5` 内描边（设计是 inset 盒阴影） | 复用 `nursing_bg_follow_outline`；内部「全部」与箭头都不铺满 |
+| 22:9322 页签选中下划线 | 101px（胶囊） | 无 | `@drawable/nursing_bg_tab_indicator`：18x3 的 shape + `radius 1.5dp`（等高的一半 = 胶囊） |
+| 22:00123 / 22:00019 / 22:00420 卡片头像 ×3 | 185px（圆形） | 无 | `nursing_bg_follow_avatar`（oval）画在 36dp `FrameLayout` 上 + **`clipToOutline`**：`ImageView` 铺满，不裁就是直角 |
+| 22:00196…22:00455 标签 chip ×24 | 4px 4px 4px 4px | 1px 同色 8% 描边 | 三个色系各一份 chip 布局，shape 直接当 `TextView` 背景（`nursing_bg_follow_tag_*`），无子 View |
+| 22:00509 / 22:00516 卡片 3 图片位 ×2 | 6px 6px 6px 6px | 无 | `nursing_bg_follow_image` 画在 80dp `ImageView` 上 + **`clipToOutline`**：背景圆角不裁子 View 时 `centerCrop` 的图会把四角盖掉 |
+| 22:9217 / 22:9280 / 22:9282 状态栏示意 ×3 | 3px / 2.67px / 1.33px | 1px 描边 | 不实现（状态栏由系统绘制，设计稿里是 iOS 示意件） |
+
+设计稿 borderRadius 节点数：37 / 本表行数：9（头像 ×3、标签 ×24、图片位 ×2、状态栏示意 ×3）
+
+（37 = 8 个 section 的 DSL 里 `grep -o '"borderRadius"'` 数到 36 条，再加 splitContainer「容器 4972」——它的圆角不在 section DSL 里，按 layer_id 回查该层元数据得 `12px 12px 0px 0px`）
+
+对账：(3−1) + (24−1) + (2−1) + (3−1) = 28 = 37 − 9。嵌套在卡片里的图片位和头像是最容易只写外层、把它写成纯色的两个——真机复量时两处都做了 `clipToOutline`，四角采样为白（见交付说明）。
 
 ## 5. StateSpec
 
@@ -216,6 +234,7 @@
 - [ ] 关键数值已按 LayoutSpec 量过实际控件（卡片高、头像 36、标签 17、图片 80、段控 200×26）
 - [ ] 卡内每一行按设计稿的行内对齐写（顶部偏移 2、正文贴顶、展开贴底右对齐），不是 `center_vertical` 一把梭
 - [ ] 头像位与图片位写了裁切机制（`clipToOutline` + 圆角 drawable）
+- [ ] 上面逐元素圆角表每一行都有真机角点断言（合并行要写明它代表设计稿哪几个节点）
 
 ## 7. 验收
 
@@ -224,5 +243,5 @@
 - [ ] `adb shell uiautomator dump` 能找到设计稿的每段文案（客户详情 / 4 个页签 / 全部 / 沟通记录 / 跟进记录 / 筛选： / 马小跳 / 电话沟通 / 张月悦 / 沟通时长：23分钟 / 12-27 11:13 / 8 个标签 / 正文 / 展开 / 收起 / 评论（0））
 - [ ] 截图与设计稿逐块比对标题栏、页签、筛选行、3 张卡片
 - [ ] 卡内逐行取 y 与设计稿相对 y 对过（±2dp），同一块至少两行
-- [ ] 圆角子元素的角点像素验证过（头像圆形、图片 80 圆角 6，四个角都看）
+- [ ] 圆角子元素的角点像素验证过（头像圆形、图片 80 圆角 6，四个角都看），逐元素圆角表每一行都量过
 - [ ] 未验证的交互和无法完全还原的偏差写进交付说明

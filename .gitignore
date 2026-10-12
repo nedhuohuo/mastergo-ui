@@ -11,6 +11,10 @@ output/design/
 output/asset/
 output/*.html
 
+# 案例与交付说明：默认不入库，仓库只留一份新格式样板
+output/analysis/*
+!output/analysis/22-9203-ui-analysis.md
+
 # 本地环境与验证草稿
 .mcp-bundles/
 .workbuddy/

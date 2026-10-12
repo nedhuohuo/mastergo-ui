@@ -28,7 +28,7 @@
 | [scripts/check-ui-analysis.sh](scripts/check-ui-analysis.sh) | Agent | 门禁检查：五项分析未填完或含待定项时拒绝开工 |
 | [tools/](tools/) | 人 | 取数小工具：MCP 只读调用器（`mcp-call.mjs`）、连通与授权探针、DSL 转结构、SVG 转 Vector、[投喂单模板](tools/design-intake.md) |
 | [docs/mastergo-mcp-setup.md](docs/mastergo-mcp-setup.md) | 人 | MCP 接入步骤（环境变量注入、客户端差异、排障） |
-| [output/analysis/](output/analysis/) | 人 | **落地案例**：每个页面的五项分析 + 交付说明（含真机实测值与偏差） |
+| [output/analysis/](output/analysis/) | 人 | **一份新格式样板**：客户详情（layer 22:9203）的五项分析，逐元素圆角表 + 对账行，过门禁 `exit 0` |
 | [output/ab/](output/ab/) | 人 | 新旧规范 A/B 对照：为什么要加五项分析门禁 |
 | [LICENSE](LICENSE) | — | MIT |
 
@@ -36,7 +36,7 @@
 
 - `output/design/`（设计稿原始落盘，可由 MCP 按 `fileId` + `layer_id` 重新拉取）、`output/asset/`、`stage/`、`.mcp-bundles/`、`.workbuddy/` 都在 `.gitignore` 里，属于本地工作区，不进仓库。
 
-案例怎么用：写新页面之前先翻 `output/analysis/` 里同形态页面（列表卡、弹层、标题栏 + 页签）的分析与交付说明——里面记着设计稿的判定（伪影、颜色三元冲突、占位文本）和真机对账遇到的坑；`android-pitfalls.md` 的每条规则都出自这些案例。
+样板怎么用：`templates/android-ui-analysis.md` 是空白模板，`output/analysis/22-9203-ui-analysis.md` 是**填完长什么样**的参照（含逐元素圆角表与 `N − M = Σ(倍数−1)` 对账行，门禁可过）。其余页面的分析 / 交付说明属于具体项目的落地记录（含设计稿链接、内部工程路径与业务文案），不入库；`android-pitfalls.md` 的每条规则都是从那些记录里提炼出来的，提炼完就只留规则，不附原文。
 
 ## 使用前准备
 
