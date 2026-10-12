@@ -3,7 +3,8 @@
 # 用法: check-ui-analysis.sh <分析文档>
 # 退出码: 0 完整可用 / 1 有缺口 / 2 用法错误
 # 判定: 五个分析小节都至少有 1 行填了内容；LayoutSpec 含「行内对齐」行且非空；
-# LayoutSpec 含「圆角 / 描边（逐元素）」表（表头含「元素」和「谁画、谁裁」、每行都填了后者），
+# LayoutSpec 含「圆角 / 描边（逐元素）」表（表头含「元素」和「谁画、谁裁」、每行都填了后者；
+# 本页没有圆角时表里写「无」、两个数都写 0），
 # 并写下「borderRadius 节点数：N / 本表行数：M」且 N − M = 合并列表的 Σ(倍数 − 1)；全文没有待定标记。
 set -uo pipefail
 
@@ -56,24 +57,36 @@ END {
   }
   # 圆角/描边必须逐元素列：写成页面级一个值时，嵌在另一块里的第二个圆角不会被列出来（门禁也放它过去）。
   rcnt = split(lines["LayoutSpec"], rrows, "\n")
-  header = 0; data = 0; empty = ""; cline = ""
+  found = 0; incount = 0; data = 0; empty = ""; cline = ""
   for (ri = 1; ri <= rcnt; ri++) {
     r = trim(rrows[ri])
     if (r ~ /borderRadius/ && r ~ /节点数/ && r ~ /行数/ && cline == "") cline = r
-    if (r !~ /^\|/) continue
-    if (r ~ /元素/ && r ~ /(谁画|谁裁)/) { header = 1; continue }
-    if (!header || issep(r)) continue
-    nc = split(r, rcells, "|")
-    label = trim(rcells[2]); lastc = trim(rcells[nc - 1])
+    if (r !~ /^\|/) {
+      # 非表格行（说明、代码块、下一节标题…）就是圆角表结束：收口后不再计数，
+      # LayoutSpec 里圆角表之后还可能有别的表，不收口就会把那些行算成圆角行。
+      incount = 0
+      continue
+    }
+    if (!incount) {
+      # 表头行：含「元素」和「谁画、谁裁」
+      if (r ~ /元素/ && r ~ /(谁画|谁裁)/) { found = 1; incount = 1 }
+      continue
+    }
+    if (issep(r)) continue
+    row = r; sub(/\|[ \t]*$/, "", row)   # 去掉行尾分隔符，否则最后一列永远是空串
+    nc = split(row, rcells, "|")
+    label = trim(rcells[2]); lastc = trim(rcells[nc])
     if (label == "" && lastc == "") continue
+    # 「本页没有圆角」的占位行：不计入行数，也不要求填「谁画、谁裁」
+    if (label ~ /^(无|—+|–+|-+)$/) continue
     data++
     if (lastc == "") empty = empty "「" label "」"
   }
-  if (!header) {
+  if (!found) {
     print "LayoutSpec 缺「圆角 / 描边（逐元素）」表：表头要含「元素」和「谁画、谁裁」"
     bad = 1
-  } else if (data == 0) {
-    print "LayoutSpec 的逐元素圆角表没有数据行（本页确实没有圆角元素就写「无」）"
+  } else if (data == 0 && cline !~ /节点数[^0-9]*0[^0-9]/) {
+    print "LayoutSpec 的逐元素圆角表没有数据行（本页确实没有圆角元素就写「无」、两个数都写 0）"
     bad = 1
   } else if (empty != "") {
     print "逐元素圆角表有行没写「谁画、谁裁」: " empty
