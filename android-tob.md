@@ -54,6 +54,30 @@ ViewModel 只负责页面状态编排、请求入口和用户意图处理，不�
 
 UI 复杂度按 ViewModel → Processor → Mapper → Policy → Resolver → `ui/controller` / `ui/view` 的职责顺序拆分，不为减少文件行数泛化 `Helper`、`CommonUtils`、`DataUtils` 或 `ViewUtils`。Kotlin 属性 setter 只做赋值，需要副作用时使用显式 `setXxx()` 方法。
 
+## 状态栏
+
+顶部是白底时，状态栏要和头部连成一块白底，标题不能被顶进状态栏。两个 API 必须配对：
+
+```kotlin
+override fun afterCreate(p0: Bundle?) {
+    // 透明状态栏 + 布局入侵 + 深色图标；深色头部传 false
+    statusBar { immersive(darkMode = true) }
+}
+```
+
+```xml
+<!-- 根布局：白底铺满状态栏区域，并消费状态栏内边距 -->
+<LinearLayout
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/bg_base"
+    android:fitsSystemWindows="true" />
+```
+
+- 只调 `statusBar { immersive(darkMode = true) }` 不加 `fitsSystemWindows`：`immersive` 内部会设 `LAYOUT_FULLSCREEN`，内容从 y=0 开始，**标题与返回会与状态栏图标重叠**。
+- 两个都不调：状态栏保留 App 主题底色，与设计稿头部之间出现一条横断带。
+- 顶部是渐变的页面按 [android-pitfalls.md](android-pitfalls.md)「系统状态栏底色会和设计稿顶部断开」处理。
+
 ## 颜色
 
 主色 `color_primary` `#5460FE`，按下 `color_primary_dark`，浅阶 `color_primary_v1`–`v7`。成功 / 警告 / 错误 / 紫用 `color_success`、`color_warning`、`color_error`、`color_purple` 及对应 `_dark`、`_v1`–`_v7`。
