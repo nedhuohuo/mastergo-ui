@@ -25,6 +25,7 @@
 | [android-pitfalls.md](android-pitfalls.md) | Agent | Android 落地陷阱：尺寸塌陷、代码拼静态布局、写死尺寸、indicator 丢失 |
 | [project-contract.md](project-contract.md) | Agent | 非 Android 工程如何找设计约定 |
 | [templates/android-ui-analysis.md](templates/android-ui-analysis.md) | Agent | 实现前填写的五项分析：页面结构、组件、资源、布局、状态 |
+| [scripts/check-ui-analysis.sh](scripts/check-ui-analysis.sh) | Agent | 门禁检查：五项分析未填完或含待定项时拒绝开工 |
 
 `.mastergo/` 是画布缓存，不是业务源码。
 

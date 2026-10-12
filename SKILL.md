@@ -90,6 +90,8 @@ description: >-
 
 模板见 [templates/android-ui-analysis.md](templates/android-ui-analysis.md)；知护办的资源、组件和基类选用见 [android-tob.md](android-tob.md)。
 
+分析写进模板的实例后，跑 `scripts/check-ui-analysis.sh <分析文档>`：exit 0 才进实现，报缺项就补齐，不带着空项写布局。
+
 页面结构按三层看，不要一上来就盯节点坐标：
 
 1. **页面层**：标题栏、页签、内容区、底部操作区；哪些固定、哪些滚动。
