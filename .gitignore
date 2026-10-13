@@ -15,6 +15,10 @@ output/*.html
 output/analysis/*
 !output/analysis/22-9203-ui-analysis.md
 
+# Python 缓存
+__pycache__/
+*.pyc
+
 # 本地环境与验证草稿
 .mcp-bundles/
 .workbuddy/

@@ -3,7 +3,10 @@
  * 生成「圆角 / 描边（逐元素）」表的骨架：节点是机器数的，人不数。
  *
  * 用法:
- *   node tools/radius-table.mjs --file <fileId> --layer <layerId> [--dump <dir>] [--offline]
+ *   node tools/radius-table.mjs --file <fileId> --layer <layerId> [--dump <dir>] [--offline] [--refresh]
+ *
+ * --refresh: 忽略本地 dump 重新拉（设计稿改过就用它；默认读缓存并把缓存情况打到 stderr，
+ *            避免把几天前的设计数据当成当前值）
  *
  * 做什么:
  *   1. 取该页 section 列表 + 每个 section 的 DSL（本地已有 dump 就直接读，没有才走 MCP）；
@@ -20,7 +23,7 @@
  * 只读调用，写盘只写 dump 缓存（output/design/<layer>/）。
  */
 import { spawnSync } from 'node:child_process'
-import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -29,7 +32,7 @@ const ROOT = resolve(HERE, '..')
 
 function usage(msg) {
   if (msg) console.error(`参数错误: ${msg}`)
-  console.error('用法: node tools/radius-table.mjs --file <fileId> --layer <layerId> [--dump <dir>] [--offline]')
+  console.error('用法: node tools/radius-table.mjs --file <fileId> --layer <layerId> [--dump <dir>] [--offline] [--refresh]')
   process.exit(2)
 }
 
@@ -41,6 +44,7 @@ for (let i = 0; i < argv.length; i++) {
   else if (a === '--layer') opt.layer = argv[++i]
   else if (a === '--dump') opt.dump = argv[++i]
   else if (a === '--offline') opt.offline = true
+  else if (a === '--refresh') opt.refresh = true
   else if (a === '-h' || a === '--help') usage()
   else usage(`未知参数 ${a}`)
 }
@@ -66,10 +70,15 @@ function callTool(tool, args) {
   return data
 }
 
-/** 本地有缓存就读缓存，没有才调 MCP 并把结果落盘，后续跑离线。 */
+/** 本地有缓存就读缓存（记一笔，最后统一提示新鲜度），没有才调 MCP 并把结果落盘。 */
+const cacheHits = []
 function ensure(relPath, tool, args) {
   const file = join(DUMP, relPath)
-  if (existsSync(file)) return JSON.parse(readFileSync(file, 'utf8'))
+  if (existsSync(file) && !opt.refresh) {
+    const st = statSync(file)
+    cacheHits.push([relPath, st.mtimeMs])
+    return JSON.parse(readFileSync(file, 'utf8'))
+  }
   if (opt.offline) {
     console.error(`✗ --offline 但缺缓存 ${relPath}；去掉 --offline 让它现取`)
     process.exit(1)
@@ -200,6 +209,17 @@ for (const n of nodes) {
 const sorted = [...groups.values()].sort(
   (a, b) => b.rows.length - a.rows.length || a.radius.localeCompare(b.radius) || b.h - a.h,
 )
+
+// 缓存提示打到 stderr：stdout 只剩能直接贴进分析文档的内容
+if (cacheHits.length) {
+  const days = cacheHits.map(([, m]) => (Date.now() - m) / 86400000)
+  const oldest = Math.max(...days)
+  console.error(
+    `[cache] 读的是本地设计稿 dump（${cacheHits.length} 个文件，最旧 ${oldest.toFixed(1)} 天）：${DUMP}`,
+  )
+  if (oldest > 7) console.error('[cache] ⚠ dump 已超过 7 天，可能不是当前设计稿')
+  console.error('[cache] 设计稿改过就重拉：加 --refresh\n')
+}
 
 console.log('### 圆角 / 描边（逐元素，不按页写一个值）\n')
 console.log('| 元素（设计稿 id / name） | 圆角（四角全写） | 描边 / 内边距 | 谁画、谁裁 |')
