@@ -124,5 +124,5 @@ node tools/radius-table.mjs --file <fileId> --layer <layerId>
 - [ ] 截图与设计稿逐块比对标题栏、页签、卡片、列表
 - [ ] 卡内逐行取 y 与设计稿相对 y 对过（±2dp），同一块至少两行
 - [ ] 圆角子元素的角点像素验证过（内缩 ≈ 半径，四个角都看），逐元素圆角表每一行都量过
-- [ ] `python3 scripts/check-radius-impl.py <模块 res 目录>` 跑过（静态查「没裁切」与「裁了但不是圆角」两娄，✗ 清零）
+- [ ] `python3 scripts/check-radius-impl.py <模块 res 目录>` 跑过（静态查「没裁切」与「裁了但不是圆角」两类，✗ 清零）
 - [ ] 未验证的交互和无法完全还原的偏差写进交付说明
