@@ -26,7 +26,8 @@
 | [project-contract.md](project-contract.md) | Agent | 非 Android 工程如何找设计约定 |
 | [templates/android-ui-analysis.md](templates/android-ui-analysis.md) | Agent | 实现前填写的五项分析：页面结构、组件、资源、布局、状态 |
 | [scripts/check-ui-analysis.sh](scripts/check-ui-analysis.sh) | Agent | 门禁检查：五项分析未填完或含待定项时拒绝开工 |
-| [tools/](tools/) | 人 | 取数小工具：MCP 只读调用器（`mcp-call.mjs`）、连通与授权探针、DSL 转结构、SVG 转 Vector、[投喂单模板](tools/design-intake.md) |
+| [scripts/check-radius-impl.py](scripts/check-radius-impl.py) | Agent | 自检：找出「背景圆角 + 铺满子 View 却没裁切」（✗，必须清零）与「裁了但背景不是圆角」（⚠）；`--self-test` 验判据 |
+| [tools/](tools/) | 人 | 取数小工具：MCP 只读调用器（`mcp-call.mjs`）、圆角表生成器（`radius-table.mjs`，节点机器数 + splitContainers 回查 + 对账行）、连通与授权探针、DSL 转结构、SVG 转 Vector、[投喂单模板](tools/design-intake.md) |
 | [docs/mastergo-mcp-setup.md](docs/mastergo-mcp-setup.md) | 人 | MCP 接入步骤（环境变量注入、客户端差异、排障） |
 | [output/analysis/](output/analysis/) | 人 | **一份新格式样板**：客户详情（layer 22:9203）的五项分析，逐元素圆角表 + 对账行，过门禁 `exit 0` |
 | [output/ab/](output/ab/) | 人 | 新旧规范 A/B 对照：为什么要加五项分析门禁 |
