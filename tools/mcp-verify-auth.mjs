@@ -3,12 +3,16 @@
  * 一次性只读验证：确认 MasterGo 令牌授权有效、且 file 180767492624044 可见。
  * 只调 getMeta（只读），不改画布、不读取页面设计内容。
  *
- * 用法: node tools/mcp-verify-auth.mjs [fileId]
+ * 用法: node tools/mcp-verify-auth.mjs [fileId] [layerId]
  * 退出码: 0 授权与文件可见 / 1 未通过 / 2 用法错误
+ *
+ * 注：服务端 v0.2.9 起 getMeta 必填 [fileId, layerId]（只传 fileId 会 -32602），
+ *     参数 schema 见 tools/mastergo-mcp-tools.json，变了就跑 mcp-tools-dump.mjs 重导。
  */
 import { spawn } from 'node:child_process'
 
 const fileId = process.argv[2] ?? '180767492624044'
+const layerId = process.argv[3] ?? '2:74595'
 const cmd = './tools/mastergo-mcp-launch.zsh'
 
 const child = spawn(cmd, [], { env: process.env, stdio: ['pipe', 'pipe', 'pipe'] })
@@ -44,17 +48,21 @@ child.stdout.on('data', (d) => {
       const tools = (m.result.tools ?? []).map((t) => t.name)
       const meta = tools.find((n) => /getMeta$/i.test(n))
       if (!meta) return done(1, `[verify] 工具面里没有 getMeta，无法验证：${tools.join(', ')}`)
-      console.log(`[verify] 工具面 ${tools.length} 个，用 ${meta} 验证 fileId=${fileId}`)
+      console.log(`[verify] 工具面 ${tools.length} 个，用 ${meta} 验证 fileId=${fileId} layerId=${layerId}`)
       send({
         jsonrpc: '2.0',
         id: 3,
         method: 'tools/call',
-        params: { name: meta, arguments: { fileId } },
+        params: { name: meta, arguments: { fileId, layerId } },
       })
     }
     if (m.id === 3) {
       if (m.error) return done(1, `[verify] getMeta 调用出错: ${JSON.stringify(m.error).slice(0, 400)}`)
       const text = (m.result?.content ?? []).map((c) => c.text ?? '').join('\n')
+      if (/-32602|Input validation error/i.test(text)) {
+        console.log(text.slice(0, 600))
+        return done(1, '[verify] 参数 schema 与服务端对不上（不是令牌问题）：跑 node tools/mcp-tools-dump.mjs 重导 schema，按新的必填项改本脚本')
+      }
       const isErr = m.result?.isError
       console.log('[verify] getMeta 返回' + (isErr ? '（标记为错误）' : '') + ':')
       console.log(text.slice(0, 1200))

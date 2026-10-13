@@ -70,13 +70,15 @@ args = ["-y", "@mastergo/vibe-mcp@latest", "--url=http://127.0.0.1:30678"]
 
 | 工具 | 何时用 |
 | --- | --- |
-| `getMeta` | 先看文件和图层 |
+| `getMeta` | 先看文件和图层，必填 `fileId` + `layerId` |
 | `getDesignSections` | 大页面按区块 |
 | `getDsl` | 单区块结构、布局、样式 |
 | `getDesignTexts` | 文案逐字一致，`format=json` |
 | `getDesignSvgs` / `extractSvg` | 图标和矢量 |
 
 链接：`https://mastergo.com/file/{fileId}?layer_id={layerId}`。`format=tree` 省 token。
+
+`getMeta` / `getDesignSections` / `getDsl` 都要 `fileId` + `layerId`（服务端 v0.2.9 起 `getMeta` 也必填，只传 `fileId` 会返回 `-32602 ... layerId Required`，那不是令牌问题）；参数变了跑 `node tools/mcp-tools-dump.mjs` 重导 schema。
 
 ## Vibe 工具
 
